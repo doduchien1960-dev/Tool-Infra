@@ -31,7 +31,7 @@ function initTabNavigation() {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-tab');
 
-      localStorage.setItem('infracalc-last-tab', targetId);
+      storageSet('infracalc-last-tab', targetId);
 
       // Cập nhật trạng thái nút
       tabButtons.forEach(b => {
@@ -42,6 +42,10 @@ function initTabNavigation() {
       btn.classList.add('active', 'bg-blue-600', 'text-white');
       btn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
       btn.setAttribute('aria-selected', 'true');
+      const activeModuleLabel = document.getElementById('active-module-label');
+      if (activeModuleLabel) {
+        activeModuleLabel.textContent = btn.querySelector('span')?.textContent?.split('·').pop()?.trim() || 'Module';
+      }
 
       // Cập nhật hiển thị panel
       tabPanels.forEach(p => p.classList.add('hidden'));
@@ -59,10 +63,22 @@ function initTabNavigation() {
     });
   });
 
-  const lastTab = localStorage.getItem('infracalc-last-tab');
+  const lastTab = storageGet('infracalc-last-tab');
   if (lastTab && document.querySelector(`.tab-btn[data-tab="${lastTab}"]`)) {
     document.querySelector(`.tab-btn[data-tab="${lastTab}"]`).click();
   }
+}
+
+function storageGet(key) {
+  try { return window.localStorage?.getItem(key) || null; } catch { return null; }
+}
+
+function storageSet(key, value) {
+  try { window.localStorage?.setItem(key, value); } catch { /* Private browsing can block storage. */ }
+}
+
+function storageRemove(key) {
+  try { window.localStorage?.removeItem(key); } catch { /* Ignore unavailable storage. */ }
 }
 
 /* ========================================================================== */
@@ -71,7 +87,7 @@ function initTabNavigation() {
 function initWorkspaceExperience() {
   const root = document.documentElement;
   const themeButton = document.getElementById('btn-theme-toggle');
-  const savedTheme = localStorage.getItem('infracalc-theme');
+  const savedTheme = storageGet('infracalc-theme');
   if (savedTheme === 'light') root.classList.add('light');
 
   const updateThemeIcon = () => {
@@ -83,7 +99,7 @@ function initWorkspaceExperience() {
 
   themeButton?.addEventListener('click', () => {
     root.classList.toggle('light');
-    localStorage.setItem('infracalc-theme', root.classList.contains('light') ? 'light' : 'dark');
+    storageSet('infracalc-theme', root.classList.contains('light') ? 'light' : 'dark');
     updateThemeIcon();
     showToast(root.classList.contains('light') ? 'Đã chuyển sang giao diện sáng.' : 'Đã chuyển sang giao diện tối.');
   });
@@ -112,8 +128,8 @@ function initWorkspaceExperience() {
       select.selectedIndex = defaultOption >= 0 ? defaultOption : 0;
     });
     root.classList.remove('light');
-    localStorage.removeItem('infracalc-theme');
-    localStorage.removeItem('infracalc-last-tab');
+    storageRemove('infracalc-theme');
+    storageRemove('infracalc-last-tab');
     document.querySelector('.tab-btn')?.click();
     document.querySelectorAll('input, select').forEach(field => field.dispatchEvent(new Event('input', { bubbles: true })));
     showToast('Workspace đã được đưa về trạng thái mặc định.', 'Đã đặt lại workspace');
@@ -199,7 +215,7 @@ function initStormwaterTab() {
   // Lắng nghe thay đổi giá trị
   [pipeTypeSelect, sizeSelect, roughnessSelect, flowInput, slopeInput, 
    document.getElementById('sw-box-b'), document.getElementById('sw-box-h')].forEach(el => {
-    if (el) el.addEventListener('input', triggerStormwaterCalc);
+    if (el) { el.addEventListener('input', triggerStormwaterCalc); el.addEventListener('change', triggerStormwaterCalc); }
   });
 
   // Nút tự động tìm cỡ cống tối ưu
@@ -311,7 +327,7 @@ function initRainfallTab() {
   [stationSelect, freqSelect, runoffSelect, tInput, fInput, kInput,
    document.getElementById('rf-param-a'), document.getElementById('rf-param-c'),
    document.getElementById('rf-param-b'), document.getElementById('rf-param-n')].forEach(el => {
-    if (el) el.addEventListener('input', triggerRainfallCalc);
+    if (el) { el.addEventListener('input', triggerRainfallCalc); el.addEventListener('change', triggerRainfallCalc); }
   });
 
   // Nút chuyển lưu lượng sang Tab Cống thoát nước
@@ -398,6 +414,8 @@ function initEarthworkTab() {
   const ktxInput = document.getElementById('ew-ktx');
   if (klInput) klInput.addEventListener('input', triggerEarthworkCalc);
   if (ktxInput) ktxInput.addEventListener('input', triggerEarthworkCalc);
+  if (klInput) klInput.addEventListener('change', triggerEarthworkCalc);
+  if (ktxInput) ktxInput.addEventListener('change', triggerEarthworkCalc);
 
   triggerEarthworkCalc();
 }
@@ -511,7 +529,7 @@ function initWaterSupplyTab() {
   }
 
   [flowInput, lengthInput, materialSelect, deltaZInput, htdInput, pipeSelect].forEach(el => {
-    if (el) el.addEventListener('input', triggerWaterSupplyCalc);
+    if (el) { el.addEventListener('input', triggerWaterSupplyCalc); el.addEventListener('change', triggerWaterSupplyCalc); }
   });
 
   triggerWaterSupplyCalc();
@@ -706,6 +724,10 @@ function initExportUtility() {
         text += `- Đoạn vuốt siêu cao Lct: ${document.getElementById('rd-res-lct')?.textContent}\n`;
       }
 
+      if (!navigator.clipboard?.writeText) {
+        showToast('Trình duyệt không cấp quyền clipboard. Hãy sao chép thủ công từ nội dung báo cáo.', 'Clipboard không khả dụng');
+        return;
+      }
       navigator.clipboard.writeText(text).then(() => {
         showToast('Tóm tắt đã nằm trong clipboard, sẵn sàng dán vào thuyết minh thiết kế.', 'Đã sao chép kết quả');
       }).catch(() => {

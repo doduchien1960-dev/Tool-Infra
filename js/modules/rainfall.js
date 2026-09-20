@@ -37,7 +37,7 @@ const RainfallModule = (() => {
    * Vẽ biểu đồ IDF (Intensity-Duration-Frequency)
    */
   function renderIDFChart(canvasEl, A, C, b, n, K, currentP, currentT, currentQ) {
-    if (!canvasEl) return;
+    if (!canvasEl || typeof Chart === 'undefined') return;
 
     const timeSteps = [5, 10, 15, 20, 30, 45, 60, 90, 120];
     const returnPeriods = [1, 2, 5, 10, 20];

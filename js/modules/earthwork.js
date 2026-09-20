@@ -101,7 +101,7 @@ const EarthworkModule = (() => {
    * Vẽ biểu đồ so sánh Đào vs Đắp
    */
   function renderEarthworkChart(canvasEl, result) {
-    if (!canvasEl) return;
+    if (!canvasEl || typeof Chart === 'undefined') return;
 
     if (chartInstance) {
       chartInstance.destroy();
