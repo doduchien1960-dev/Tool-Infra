@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfraCalc Online - Bộ Công Cụ Thủy Lực & Hạ Tầng Kỹ Thuật Đô Thị</title>
+  <meta name="description" content="Ứng dụng web tính toán thủy lực cống tự chảy Manning, cường độ mưa TCVN 7957, cân bằng đào đắp san nền, cấp nước Hazen-Williams và hình học đường đô thị." />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-blue-500 selection:text-white">
+
+  <!-- ========================================================================
+       TOP NAVIGATION BAR
+       ======================================================================== -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Logo & Tiêu đề -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <i data-lucide="calculator" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-black text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-sky-400 bg-clip-text text-transparent">
+              INFRACALC ONLINE
+            </h1>
+            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              v2.0 TCVN
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Kỹ thuật Hạ tầng Đô thị: Thoát nước · Mưa · San nền · Cấp nước · Đường</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="btn-copy-summary" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors shadow-sm" title="Sao chép tóm tắt thông số vào clipboard">
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          <span class="hidden md:inline">Sao chép kết quả</span>
+        </button>
+
+        <button id="btn-print-report" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 transition-all">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>In / Xuất PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 flex space-x-1 sm:space-x-2 overflow-x-auto py-2 no-scrollbar" id="tab-nav">
+      <button class="tab-btn active px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap" data-tab="tab-stormwater">
+        <i data-lucide="waves" class="w-4 h-4"></i>
+        <span>1. Thủy Lực Cống (Manning)</span>
+      </button>
+
+      <button class="tab-btn px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-slate-200 hover:bg-slate-800" data-tab="tab-rainfall">
+        <i data-lucide="cloud-rain" class="w-4 h-4"></i>
+        <span>2. Cường Độ Mưa & IDF</span>
+      </button>
+
+      <button class="tab-btn px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-slate-200 hover:bg-slate-800" data-tab="tab-earthwork">
+        <i data-lucide="layers" class="w-4 h-4"></i>
+        <span>3. San Nền (Đào - Đắp)</span>
+      </button>
+
+      <button class="tab-btn px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-slate-200 hover:bg-slate-800" data-tab="tab-watersupply">
+        <i data-lucide="droplets" class="w-4 h-4"></i>
+        <span>4. Mạng Lưới Cấp Nước</span>
+      </button>
+
+      <button class="tab-btn px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-slate-200 hover:bg-slate-800" data-tab="tab-roaddesign">
+        <i data-lucide="compass" class="w-4 h-4"></i>
+        <span>5. Hình Học Tuyến Đường</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- ========================================================================
+       MAIN CONTENT CONTAINER
+       ======================================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 blueprint-grid-dark">
+
+    <!-- ====================================================================
+         TAB 1: THOÁT NƯỚC & CỐNG TỰ CHẢY (MANNING)
+         ==================================================================== -->
+    <section id="tab-stormwater" class="tab-panel">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Input Form -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <h2 class="text-base font-bold text-white flex items-center gap-2 mb-4">
+              <i data-lucide="sliders" class="w-5 h-5 text-blue-400"></i>
+              Thông số dòng chảy & cống
+            </h2>
+
+            <div class="space-y-4 text-sm">
+              <!-- Loại cống -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Dạng tiết diện cống</label>
+                <select id="sw-pipe-type" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500">
+                  <option value="circular">Cống tròn BTCT (Circular Culvert)</option>
+                  <option value="box">Cống hộp BTCT (Box Culvert B x H)</option>
+                </select>
+              </div>
+
+              <!-- Lưu lượng Q -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-xs font-semibold text-slate-400">Lưu lượng tính toán Q (l/s)</label>
+                  <span class="text-xs text-blue-400 font-mono" id="sw-flow-val"></span>
+                </div>
+                <div class="relative">
+                  <input type="number" id="sw-flow" value="350" step="10" min="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 font-mono text-base font-bold" />
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-500">l/s</span>
+                </div>
+              </div>
+
+              <!-- Độ dốc thủy lực i -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-xs font-semibold text-slate-400">Độ dốc đáy cống i (%)</label>
+                  <span class="text-xs text-slate-400 font-mono">Ví dụ 0.3% = 0.003</span>
+                </div>
+                <div class="relative">
+                  <input type="number" id="sw-slope" value="0.30" step="0.05" min="0.01" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 font-mono text-base font-bold" />
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-500">%</span>
+                </div>
+              </div>
+
+              <!-- Nhóm Cống Tròn -->
+              <div id="sw-circular-inputs" class="space-y-3">
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <label class="text-xs font-semibold text-slate-400">Đường kính cống thương mại (D)</label>
+                    <button type="button" id="sw-auto-optimize" class="text-xs text-blue-400 hover:text-blue-300 font-semibold underline">
+                      Tự tìm cỡ tối ưu
+                    </button>
+                  </div>
+                  <select id="sw-pipe-size" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 font-medium"></select>
+                </div>
+              </div>
+
+              <!-- Nhóm Cống Hộp -->
+              <div id="sw-box-inputs" class="hidden space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Bề rộng B (m)</label>
+                    <input type="number" id="sw-box-b" value="1.2" step="0.1" min="0.5" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Chiều cao H (m)</label>
+                    <input type="number" id="sw-box-h" value="1.2" step="0.1" min="0.5" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hệ số nhám Manning n -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Vật liệu & Hệ số nhám Manning (n)</label>
+                <select id="sw-roughness" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 text-xs"></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tiêu chuẩn trích dẫn nhanh -->
+          <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 text-xs text-slate-400 space-y-1.5">
+            <div class="font-bold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="book-open" class="w-4 h-4 text-blue-400"></i>
+              Quy chuẩn kiểm tra TCVN 7957:2023
+            </div>
+            <p>• Vận tốc tự làm sạch: <span class="text-amber-400 font-semibold">v ≥ 0.7 m/s</span> (tránh lắng cặn).</p>
+            <p>• Vận tốc tối đa: <span class="text-amber-400 font-semibold">v ≤ 5.0 - 7.0 m/s</span> (tránh xói lở cống BTCT).</p>
+            <p>• Độ đầy giới hạn: <span class="text-sky-400 font-semibold">h/D ≤ 0.6</span> (D≤300); <span class="text-sky-400 font-semibold">≤ 0.7</span> (D≤900); <span class="text-sky-400 font-semibold">≤ 0.8</span> (D≥1000).</p>
+          </div>
+        </div>
+
+        <!-- Right Column: Visualizer & Output Results -->
+        <div class="lg:col-span-7 space-y-4">
+          
+          <!-- Hộp thông báo trạng thái tiêu chuẩn -->
+          <div id="sw-status-box" class="p-4 rounded-xl border text-sm font-medium transition-all"></div>
+
+          <!-- Card Đồ họa SVG Mặt cắt hoạt ảnh thời gian thực -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col items-center relative overflow-hidden">
+            <div class="w-full flex justify-between items-center mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="eye" class="w-4 h-4 text-sky-400"></i>
+                Mặt cắt dòng chảy động (Real-time Flow)
+              </span>
+              <span class="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-mono">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                Active Simulation
+              </span>
+            </div>
+
+            <!-- SVG Container -->
+            <div class="w-full flex justify-center py-2">
+              <svg id="sw-culvert-svg" width="280" height="280" viewBox="0 0 280 280" class="drop-shadow-2xl"></svg>
+            </div>
+
+            <div class="text-[11px] text-slate-500 text-center mt-1">
+              * Hoạt ảnh sóng nước và tốc độ bọt trôi tỷ lệ thuận với vận tốc thực tế v (m/s)
+            </div>
+          </div>
+
+          <!-- Bảng Kết quả Tính toán Chi tiết -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 eng-card">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase">Vận tốc (v)</div>
+              <div class="text-xl font-black text-sky-400 mt-1" id="sw-res-v">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Tiêu chuẩn: ≥ 0.7 m/s</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 eng-card">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase">Chiều sâu nước (h)</div>
+              <div class="text-xl font-black text-amber-400 mt-1" id="sw-res-h">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Mực nước tính toán</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 eng-card">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase">Độ đầy (h/D)</div>
+              <div class="text-xl font-black text-emerald-400 mt-1" id="sw-res-hratio">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Tỷ lệ chiếm chỗ</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 eng-card">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase">Lưu lượng cực đại</div>
+              <div class="text-xl font-black text-slate-200 mt-1" id="sw-res-qmax">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Q_max cống tự chảy</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 eng-card">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase">Diện tích ướt (A)</div>
+              <div class="text-xl font-black text-slate-200 mt-1" id="sw-res-area">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Tiết diện nước chảy</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 eng-card">
+              <div class="text-[11px] font-semibold text-slate-400 uppercase">Bán kính thủy lực (R)</div>
+              <div class="text-xl font-black text-slate-200 mt-1" id="sw-res-radius">--</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">R = A / P</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 2: CƯỜNG ĐỘ MƯA & IDF (TCVN 7957:2023 / 2008)
+         ==================================================================== -->
+    <section id="tab-rainfall" class="tab-panel hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Form chọn trạm mưa và thông số -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <h2 class="text-base font-bold text-white flex items-center gap-2 mb-4">
+              <i data-lucide="cloud-rain" class="w-5 h-5 text-sky-400"></i>
+              Tra cứu Cường độ mưa (TCVN 7957)
+            </h2>
+
+            <div class="space-y-4 text-sm">
+              <!-- Chọn tỉnh / Trạm khí tượng -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Tỉnh / Thành phố (Trạm khí tượng)</label>
+                <select id="rf-station" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-medium"></select>
+              </div>
+
+              <!-- Chu kỳ lặp P -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-xs font-semibold text-slate-400">Chu kỳ lặp tính toán P (năm)</label>
+                  <span class="text-xs text-sky-400 font-mono">Đô thị loại I: P=5-10 năm</span>
+                </div>
+                <select id="rf-freq" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-medium">
+                  <option value="1">P = 1 năm (Khu nông thôn, cống nhỏ)</option>
+                  <option value="2">P = 2 năm (Đô thị loại III-IV, cống nhánh)</option>
+                  <option value="3">P = 3 năm (Đô thị loại II-III)</option>
+                  <option value="5" selected>P = 5 năm (Đô thị loại I, cống chính - Phổ biến)</option>
+                  <option value="10">P = 10 năm (Đô thị đặc biệt, cống trục chính)</option>
+                  <option value="20">P = 20 năm (Khu vực xung yếu, quảng trường)</option>
+                </select>
+              </div>
+
+              <!-- Thời gian mưa t -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-xs font-semibold text-slate-400">Thời gian mưa tính toán t (phút)</label>
+                  <span class="text-xs text-slate-400 font-mono">t = t₀ + t₁ + t₂</span>
+                </div>
+                <input type="number" id="rf-time" value="15" step="1" min="5" max="180" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono font-bold" />
+              </div>
+
+              <!-- Loại mặt phủ & psi -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Hệ số dòng chảy mặt phủ (ψ)</label>
+                <select id="rf-runoff-type" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs"></select>
+              </div>
+
+              <!-- Diện tích lưu vực F -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Diện tích lưu vực thoát nước F (ha)</label>
+                <div class="relative">
+                  <input type="number" id="rf-area" value="5.0" step="0.5" min="0.1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono font-bold" />
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-500">ha</span>
+                </div>
+              </div>
+
+              <!-- Hệ số biến đổi khí hậu K (TCVN 7957:2023) -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-xs font-semibold text-slate-400">Hệ số biến đổi khí hậu K (TCVN 7957:2023)</label>
+                  <span class="text-xs text-emerald-400 font-mono">K ≥ 1.0</span>
+                </div>
+                <input type="number" id="rf-k" value="1.10" step="0.05" min="1.0" max="1.5" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono" />
+              </div>
+
+              <!-- Nút mở rộng tham số A, C, b, n -->
+              <details class="text-xs border-t border-slate-800 pt-3">
+                <summary class="font-bold text-slate-400 cursor-pointer hover:text-slate-200 flex items-center justify-between">
+                  <span>Hằng số thực nghiệm địa phương (A, C, b, n)</span>
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </summary>
+                <div class="grid grid-cols-4 gap-2 mt-3">
+                  <div>
+                    <label class="text-[10px] text-slate-500">A</label>
+                    <input type="number" id="rf-param-a" value="5890" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500">C</label>
+                    <input type="number" id="rf-param-c" value="0.65" step="0.01" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500">b</label>
+                    <input type="number" id="rf-param-b" value="20" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-500">n</label>
+                    <input type="number" id="rf-param-n" value="0.84" step="0.01" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono" />
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Biểu đồ IDF & Kết quả -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- Kết quả Card -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-slate-900 border border-blue-500/30 rounded-2xl p-4 shadow-lg shadow-blue-500/5">
+              <div class="text-xs font-semibold text-slate-400">Cường độ mưa tính toán (q)</div>
+              <div class="text-3xl font-black text-sky-400 mt-1">
+                <span id="rf-res-q">--</span> <span class="text-xs font-medium text-slate-400">l/s·ha</span>
+              </div>
+              <div class="text-[10px] text-slate-500 mt-1">Theo công thức TCVN 7957</div>
+            </div>
+
+            <div class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 shadow-lg shadow-emerald-500/5">
+              <div class="text-xs font-semibold text-slate-400">Lưu lượng mưa (Q)</div>
+              <div class="text-3xl font-black text-emerald-400 mt-1">
+                <span id="rf-res-flow">--</span> <span class="text-xs font-medium text-slate-400">l/s</span>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-1 font-mono">
+                = <span id="rf-res-flow-m3s">--</span> m³/s (<span id="rf-res-flow-m3h">--</span> m³/h)
+              </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+              <div class="text-xs font-semibold text-slate-400">Liên kết sang Cống</div>
+              <button id="rf-send-to-culvert" class="w-full mt-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md">
+                <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+                <span>Gửi Q sang tính Cống</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Rain Simulator Hoạt ảnh mưa rơi -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 relative overflow-hidden">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="cloud-lightning" class="w-4 h-4 text-sky-400"></i>
+                Mô phỏng mật độ giọt mưa thực tế (Rainfall Particle Simulator)
+              </span>
+            </div>
+            <div class="w-full h-32 rounded-xl overflow-hidden bg-slate-950 relative border border-slate-800">
+              <canvas id="rf-rain-canvas" class="w-full h-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Biểu đồ IDF Chart.js -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <i data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i>
+              Đường cong quan hệ Cường độ - Thời gian - Chu kỳ lặp (IDF Curves)
+            </h3>
+            <div class="h-64 w-full">
+              <canvas id="rf-idf-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 3: SAN NỀN & CÂN BẰNG ĐÀO - ĐẮP (EARTHWORK BALANCE)
+         ==================================================================== -->
+    <section id="tab-earthwork" class="tab-panel hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Table of Lots -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                  <i data-lucide="layers" class="w-5 h-5 text-amber-400"></i>
+                  Danh sách Ô đất / Phân khu San nền
+                </h2>
+                <p class="text-xs text-slate-400">Nhập diện tích và cao độ khống chế để ước tính cân bằng</p>
+              </div>
+              <button id="ew-add-lot" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Thêm ô đất
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase">
+                    <th class="py-2 px-3">Tên ô đất / Lô</th>
+                    <th class="py-2 px-3">Diện tích S (m²)</th>
+                    <th class="py-2 px-3">H tự nhiên (m)</th>
+                    <th class="py-2 px-3">H thiết kế (m)</th>
+                    <th class="py-2 px-3 text-center">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody id="ew-lot-tbody"></tbody>
+              </table>
+            </div>
+
+            <!-- Hệ số kỹ thuật đất -->
+            <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-800 text-xs">
+              <div>
+                <label class="block text-slate-400 font-semibold mb-1">Hệ số lu lèn (k_l)</label>
+                <input type="number" id="ew-kl" value="1.10" step="0.05" min="1.0" max="1.3" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-slate-200" />
+                <span class="text-[10px] text-slate-500">Độ chặt K95 (k_l ≈ 1.10)</span>
+              </div>
+              <div>
+                <label class="block text-slate-400 font-semibold mb-1">Hệ số tơi xốp đất đào (k_tx)</label>
+                <input type="number" id="ew-ktx" value="1.20" step="0.05" min="1.0" max="1.4" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-slate-200" />
+                <span class="text-[10px] text-slate-500">Quy đổi xe chở đất rời</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mặt cắt SVG Trắc ngang San nền -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
+              Sơ đồ Mặt cắt Địa hình Tự nhiên vs Thiết kế
+            </h3>
+            <div class="w-full flex justify-center py-2">
+              <svg id="ew-cross-section-svg" width="360" height="180" viewBox="0 0 360 180" class="rounded-xl"></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Results & Chart -->
+        <div class="lg:col-span-5 space-y-4">
+          <!-- Hộp khuyến nghị cân bằng -->
+          <div id="ew-recommendation-box" class="p-4 rounded-xl border"></div>
+
+          <!-- Các thẻ khối lượng -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-[11px] font-semibold text-slate-400">Tổng diện tích mặt bằng</div>
+              <div class="text-lg font-black text-white mt-1" id="ew-res-total-area">--</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-[11px] font-semibold text-red-400">Tổng đào nguyên thổ (V_đào)</div>
+              <div class="text-lg font-black text-red-400 mt-1" id="ew-res-cut">--</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-[11px] font-semibold text-blue-400">Tổng đắp thiết kế (V_đắp)</div>
+              <div class="text-lg font-black text-blue-400 mt-1" id="ew-res-fill">--</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+              <div class="text-[11px] font-semibold text-emerald-400">Đất đắp cần (có lu lèn)</div>
+              <div class="text-lg font-black text-emerald-400 mt-1" id="ew-res-req-fill">--</div>
+            </div>
+          </div>
+
+          <!-- Biểu đồ so sánh Bar Chart -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Biểu đồ Cán cân Khối lượng (m³)
+            </h3>
+            <div class="h-56 w-full">
+              <canvas id="ew-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 4: MẠNG LƯỚI CẤP NƯỚC ĐÔ THỊ (HAZEN-WILLIAMS)
+         ==================================================================== -->
+    <section id="tab-watersupply" class="tab-panel hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Form thông số cấp nước -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <h2 class="text-base font-bold text-white flex items-center gap-2 mb-4">
+              <i data-lucide="droplets" class="w-5 h-5 text-blue-400"></i>
+              Thông số Tuyến ống Cấp nước
+            </h2>
+
+            <div class="space-y-4 text-sm">
+              <!-- Lưu lượng nước Q -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Lưu lượng nước cấp Q (l/s)</label>
+                <div class="relative">
+                  <input type="number" id="ws-flow" value="25" step="5" min="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono text-base font-bold" />
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-500">l/s</span>
+                </div>
+              </div>
+
+              <!-- Chiều dài tuyến ống L -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Chiều dài tuyến ống L (m)</label>
+                <div class="relative">
+                  <input type="number" id="ws-length" value="600" step="50" min="10" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono font-bold" />
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-500">m</span>
+                </div>
+              </div>
+
+              <!-- Vật liệu ống C -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Vật liệu & Hệ số Hazen-Williams (C)</label>
+                <select id="ws-material" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs"></select>
+              </div>
+
+              <!-- Chênh cao địa hình & Áp lực tự do -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Chênh cao ΔZ (m)</label>
+                  <input type="number" id="ws-deltaz" value="3.0" step="0.5" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Áp lực tự do H_td (m)</label>
+                  <input type="number" id="ws-htd" value="12.0" step="1.0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono" />
+                </div>
+              </div>
+
+              <!-- Chọn cỡ ống cụ thể (tùy chọn) -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Cỡ ống thương mại (DN)</label>
+                <select id="ws-pipe-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs font-medium"></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ghi chú vận tốc kinh tế -->
+          <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 text-xs text-slate-400 space-y-1">
+            <div class="font-bold text-slate-300">Vận tốc kinh tế theo TCVN 33:2006:</div>
+            <p>• Đường kính D ≤ 300 mm: <span class="text-emerald-400 font-semibold">v = 0.8 - 1.2 m/s</span></p>
+            <p>• Đường kính D > 300 mm: <span class="text-emerald-400 font-semibold">v = 1.2 - 1.5 m/s</span></p>
+          </div>
+        </div>
+
+        <!-- Right: Animated Pipe SVG & Comparison Table -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- Hộp đánh giá TCVN 33 -->
+          <div id="ws-status-box"></div>
+
+          <!-- Hoạt ảnh Tuyến ống cấp nước SVG -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col items-center">
+            <div class="w-full flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="gauge" class="w-4 h-4 text-sky-400"></i>
+                Mô phỏng Dòng chảy Áp lực trong Tuyến ống
+              </span>
+            </div>
+            <div class="w-full flex justify-center py-2">
+              <svg id="ws-pipe-svg" width="340" height="170" viewBox="0 0 340 170"></svg>
+            </div>
+          </div>
+
+          <!-- Thẻ kết quả thủy lực -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Cỡ ống chọn</div>
+              <div class="text-base font-bold text-white mt-0.5 truncate" id="ws-res-pipe-name">--</div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Vận tốc v</div>
+              <div class="text-base font-bold text-sky-400 mt-0.5" id="ws-res-v">--</div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Tổn thất h_f</div>
+              <div class="text-base font-bold text-amber-400 mt-0.5" id="ws-res-hf">--</div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Tổng cột áp cần</div>
+              <div class="text-base font-bold text-emerald-400 mt-0.5" id="ws-res-htong">--</div>
+            </div>
+          </div>
+
+          <!-- Bảng so sánh các cỡ ống thương mại -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
+              Bảng Đánh Giá & So Sánh Toàn Bộ Cỡ Ống Thương Mại (TCVN 33)
+            </h3>
+            <div class="overflow-x-auto max-h-56">
+              <table class="w-full text-left text-xs">
+                <thead class="sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                  <tr>
+                    <th class="py-2 px-3">Cỡ ống</th>
+                    <th class="py-2 px-3 text-right">Vận tốc v</th>
+                    <th class="py-2 px-3 text-right">1000i (m/km)</th>
+                    <th class="py-2 px-3 text-right">Tổn thất hf</th>
+                    <th class="py-2 px-3 text-right">Tổng H</th>
+                    <th class="py-2 px-3 text-center">Đánh giá</th>
+                  </tr>
+                </thead>
+                <tbody id="ws-comparison-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TAB 5: THIẾT KẾ HÌNH HỌC ĐƯỜNG ĐÔ THỊ (TCVN 4054 / QCVN 07)
+         ==================================================================== -->
+    <section id="tab-roaddesign" class="tab-panel hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Form chọn cấp đường & vận tốc -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+            <h2 class="text-base font-bold text-white flex items-center gap-2 mb-4">
+              <i data-lucide="compass" class="w-5 h-5 text-amber-400"></i>
+              Tiêu chuẩn Tuyến đường (TCVN 4054)
+            </h2>
+
+            <div class="space-y-4 text-sm">
+              <!-- Cấp đường -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Cấp thiết kế đường đô thị</label>
+                <select id="rd-class" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-medium"></select>
+              </div>
+
+              <!-- Vận tốc Vtk -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Vận tốc thiết kế V_tk (km/h)</label>
+                <select id="rd-speed" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono font-bold"></select>
+              </div>
+
+              <!-- Bán kính R thiết kế -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="text-xs font-semibold text-slate-400">Bán kính đường cong nằm dự kiến R (m)</label>
+                </div>
+                <div class="relative">
+                  <input type="number" id="rd-radius" value="250" step="10" min="15" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 font-mono font-bold text-base" />
+                  <span class="absolute right-3 top-2.5 text-xs text-slate-500">m</span>
+                </div>
+              </div>
+
+              <!-- Loại xe thiết kế (cho độ mở rộng bụng đường cong) -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Loại xe kiểm toán độ mở rộng (ΔB)</label>
+                <select id="rd-vehicle" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 text-xs">
+                  <option value="bus" selected>Xe buýt đô thị tiêu chuẩn (L cơ sở = 8.0 m)</option>
+                  <option value="car">Ô tô con 4-7 chỗ (L cơ sở = 3.5 m)</option>
+                  <option value="truck_trailer">Xe sơ mi rơ moóc / Container (L cơ sở = 12.0 m)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Đánh giá bán kính R -->
+          <div id="rd-status-box" class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl"></div>
+        </div>
+
+        <!-- Right: Animated Car on Curve & Standards Output -->
+        <div class="lg:col-span-7 space-y-4">
+          
+          <!-- Hoạt ảnh xe ô tô chạy ôm cua đường cong SVG -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col items-center">
+            <div class="w-full flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="navigation" class="w-4 h-4 text-sky-400"></i>
+                Mô phỏng Xe Chạy Ôm Cua Đường Cong & Mở Rộng Bụng
+              </span>
+            </div>
+            <div class="w-full flex justify-center py-2">
+              <svg id="rd-road-svg" width="360" height="240" viewBox="0 0 360 240" class="rounded-xl"></svg>
+            </div>
+          </div>
+
+          <!-- Bảng các yếu tố hình học chuẩn xác -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
+              Bảng Thông Số Kỹ Thuật Tuyến Đường (TCVN 4054 & QCVN 07-1)
+            </h3>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">R_min giới hạn:</span>
+                <span class="text-sm font-bold text-red-400" id="rd-res-rmingh">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">R_min thông thường:</span>
+                <span class="text-sm font-bold text-amber-400" id="rd-res-rmintt">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">R không siêu cao:</span>
+                <span class="text-sm font-bold text-emerald-400" id="rd-res-rksc">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">Độ dốc siêu cao (e%):</span>
+                <span class="text-sm font-bold text-sky-400" id="rd-res-isc">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">Vuốt siêu cao (L_ct):</span>
+                <span class="text-sm font-bold text-white" id="rd-res-lct">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">Mở rộng bụng cua (ΔB):</span>
+                <span class="text-sm font-bold text-orange-400" id="rd-res-deltab">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">Bán kính cong đứng lồi:</span>
+                <span class="text-sm font-bold text-slate-300" id="rd-res-rloi">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">Bán kính cong đứng hõm:</span>
+                <span class="text-sm font-bold text-slate-300" id="rd-res-rhom">--</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-slate-500 block">Độ dốc dọc tối đa:</span>
+                <span class="text-sm font-bold text-slate-300" id="rd-res-imax">--</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================
+       FOOTER
+       ======================================================================== -->
+  <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 text-xs text-slate-500 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div>
+        © 2026 <span class="font-bold text-slate-400">InfraCalc Online</span> - Công cụ hỗ trợ kỹ sư hạ tầng kỹ thuật đô thị Việt Nam.
+      </div>
+      <div class="flex items-center gap-4 text-[11px]">
+        <span>TCVN 7957:2023</span>
+        <span>•</span>
+        <span>TCVN 33:2006</span>
+        <span>•</span>
+        <span>TCVN 4054:2005</span>
+        <span>•</span>
+        <span>QCVN 07:2016/BXD</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data/rainfall_data.js"></script>
+  <script src="js/data/pipe_catalog.js"></script>
+  <script src="js/data/road_standards.js"></script>
+  <script src="js/modules/stormwater.js"></script>
+  <script src="js/modules/rainfall.js"></script>
+  <script src="js/modules/earthwork.js"></script>
+  <script src="js/modules/watersupply.js"></script>
+  <script src="js/modules/road_design.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
