@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.lucide.createIcons();
   }
 
+  initWorkspaceExperience();
+
   // Khởi tạo các Tab & Module
   initTabNavigation();
   initStormwaterTab();
@@ -29,13 +31,17 @@ function initTabNavigation() {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-tab');
 
+      localStorage.setItem('infracalc-last-tab', targetId);
+
       // Cập nhật trạng thái nút
       tabButtons.forEach(b => {
         b.classList.remove('active', 'bg-blue-600', 'text-white');
         b.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+        b.setAttribute('aria-selected', 'false');
       });
       btn.classList.add('active', 'bg-blue-600', 'text-white');
       btn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+      btn.setAttribute('aria-selected', 'true');
 
       // Cập nhật hiển thị panel
       tabPanels.forEach(p => p.classList.add('hidden'));
@@ -52,6 +58,106 @@ function initTabNavigation() {
       else if (targetId === 'tab-roaddesign') triggerRoadDesignCalc();
     });
   });
+
+  const lastTab = localStorage.getItem('infracalc-last-tab');
+  if (lastTab && document.querySelector(`.tab-btn[data-tab="${lastTab}"]`)) {
+    document.querySelector(`.tab-btn[data-tab="${lastTab}"]`).click();
+  }
+}
+
+/* ========================================================================== */
+/* WORKSPACE EXPERIENCE: THEME, QUICK ACTIONS & TOASTS                         */
+/* ========================================================================== */
+function initWorkspaceExperience() {
+  const root = document.documentElement;
+  const themeButton = document.getElementById('btn-theme-toggle');
+  const savedTheme = localStorage.getItem('infracalc-theme');
+  if (savedTheme === 'light') root.classList.add('light');
+
+  const updateThemeIcon = () => {
+    if (!themeButton) return;
+    themeButton.innerHTML = `<i data-lucide="${root.classList.contains('light') ? 'moon' : 'sun'}" class="w-4 h-4"></i>`;
+    themeButton.title = root.classList.contains('light') ? 'Chuyển giao diện tối' : 'Chuyển giao diện sáng';
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  themeButton?.addEventListener('click', () => {
+    root.classList.toggle('light');
+    localStorage.setItem('infracalc-theme', root.classList.contains('light') ? 'light' : 'dark');
+    updateThemeIcon();
+    showToast(root.classList.contains('light') ? 'Đã chuyển sang giao diện sáng.' : 'Đã chuyển sang giao diện tối.');
+  });
+  updateThemeIcon();
+
+  document.querySelectorAll('[data-quick-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = document.querySelector(`.tab-btn[data-tab="${button.dataset.quickTab}"]`);
+      target?.click();
+      document.querySelector('.tab-panel:not(.hidden)')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  document.getElementById('btn-command-help')?.addEventListener('click', () => {
+    showToast('Phím tắt: Alt + 1–5 để chuyển nhanh giữa các module.', 'Phím tắt InfraCalc');
+  });
+
+  document.getElementById('btn-reset-workspace')?.addEventListener('click', () => {
+    const shouldReset = window.confirm('Đặt lại toàn bộ thông số về giá trị ban đầu?');
+    if (!shouldReset) return;
+    document.querySelectorAll('input').forEach(input => {
+      if (input.defaultValue !== undefined) input.value = input.defaultValue;
+    });
+    document.querySelectorAll('select').forEach(select => {
+      const defaultOption = Array.from(select.options).findIndex(option => option.defaultSelected);
+      select.selectedIndex = defaultOption >= 0 ? defaultOption : 0;
+    });
+    root.classList.remove('light');
+    localStorage.removeItem('infracalc-theme');
+    localStorage.removeItem('infracalc-last-tab');
+    document.querySelector('.tab-btn')?.click();
+    document.querySelectorAll('input, select').forEach(field => field.dispatchEvent(new Event('input', { bubbles: true })));
+    showToast('Workspace đã được đưa về trạng thái mặc định.', 'Đã đặt lại workspace');
+  });
+
+  const progress = document.getElementById('scroll-progress');
+  const backTop = document.getElementById('btn-back-top');
+  const updateScrollUI = () => {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    const percent = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+    if (progress) progress.style.width = `${percent}%`;
+    backTop?.classList.toggle('visible', window.scrollY > 420);
+  };
+  window.addEventListener('scroll', updateScrollUI, { passive: true });
+  window.addEventListener('resize', updateScrollUI);
+  updateScrollUI();
+  backTop?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  document.addEventListener('keydown', event => {
+    if (!event.altKey || event.ctrlKey || event.metaKey) return;
+    const index = Number(event.key);
+    if (index >= 1 && index <= 5) {
+      event.preventDefault();
+      document.querySelectorAll('.tab-btn')[index - 1]?.click();
+    }
+  });
+
+  const greeting = document.getElementById('dashboard-greeting');
+  if (greeting) {
+    const hour = new Date().getHours();
+    const salutation = hour < 12 ? 'Chào buổi sáng' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+    greeting.textContent = `${salutation}! Một không gian tính toán gọn gàng cho những quyết định lớn ngoài công trường.`;
+  }
+}
+
+function showToast(message, title = 'InfraCalc Online') {
+  const region = document.getElementById('toast-region');
+  if (!region) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast success';
+  toast.innerHTML = `<i data-lucide="check-circle-2" class="toast-icon w-4 h-4"></i><div><strong>${title}</strong><span>${message}</span></div>`;
+  region.appendChild(toast);
+  if (window.lucide) window.lucide.createIcons();
+  window.setTimeout(() => toast.remove(), 3600);
 }
 
 /* ==========================================================================
@@ -601,7 +707,9 @@ function initExportUtility() {
       }
 
       navigator.clipboard.writeText(text).then(() => {
-        alert('Đã sao chép tóm tắt kết quả tính toán vào bộ nhớ tạm (Clipboard)! Bạn có thể dán ngay vào Thuyết minh thiết kế.');
+        showToast('Tóm tắt đã nằm trong clipboard, sẵn sàng dán vào thuyết minh thiết kế.', 'Đã sao chép kết quả');
+      }).catch(() => {
+        showToast('Không thể truy cập clipboard trên trình duyệt này.', 'Sao chép chưa thành công');
       });
     });
   }
