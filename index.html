@@ -150,7 +150,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { BasisTextureLoader } from 'three/addons/loaders/BasisTextureLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
@@ -319,11 +319,11 @@ const FURNITURE = [
 ];
 function loadFurniture(){
   const loader = new GLTFLoader();
-  // hỗ trợ texture nén BasisU trong GLB
-  const basis = new BasisTextureLoader();
-  basis.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
-  basis.detectSupport(renderer);
-  loader.setBasisTextureLoader(basis);
+  // hỗ trợ texture nén BasisU/KTX2 trong GLB
+  const ktx2 = new KTX2Loader();
+  ktx2.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
+  ktx2.detectSupport(renderer);
+  loader.setKTX2Loader(ktx2);
   let done = 0;
   FURNITURE.forEach(([file, x, y, z, ry], i)=>{
     loader.load('assets/models/'+file,
