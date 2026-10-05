@@ -2,11 +2,6 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<script>
-window.__errs=[];
-window.onerror=function(m,s,l){window.__errs.push(m+' L'+l);var d=document.getElementById('dbg');if(d){d.style.display='block';d.textContent=window.__errs.join('\n');}};
-window.addEventListener('unhandledrejection',function(e){var m='UNHANDLED: '+((e.reason&&e.reason.message)||e.reason);window.__errs.push(m);var d=document.getElementById('dbg');if(d){d.style.display='block';d.textContent=window.__errs.join('\n');}});
-</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xưởng ĐỨC BẢO — Phòng 3D</title>
 <style>
@@ -122,7 +117,6 @@ window.addEventListener('unhandledrejection',function(e){var m='UNHANDLED: '+((e
     <div id="bar"><i></i></div>
   </div>
 </div>
-<div id="dbg" style="display:none;position:fixed;bottom:0;left:0;right:0;max-height:40%;overflow:auto;background:#300;color:#f88;font:11px monospace;padding:8px;z-index:99;white-space:pre-wrap"></div>
 
 <div id="hud">
   <div id="brand">ĐỨC BẢO · XƯỞNG 3D</div>
@@ -219,6 +213,7 @@ public void TinToGrid(){
 const container = document.getElementById('scene');
 const bar = document.querySelector('#bar i');
 const loadMsg = document.querySelector('#loader p');
+const clock = new THREE.Clock();
 let loadDone = false;
 function finishLoad(){
   if(loadDone) return; loadDone = true;
@@ -253,6 +248,7 @@ async function init(){
   controls.enableDamping = true;
   controls.minDistance = 0.8; controls.maxDistance = 7;
   controls.maxPolarAngle = 1.72;
+  controls.addEventListener('start', ()=>{ tween = null; }); // người dùng chạm vào → dừng tween
 
   // tải splat phòng bằng SPZLoader native của three.js
   // căn tâm phòng về gốc tọa độ (bbox thực: center -5.81,2.97,0.93)
@@ -336,7 +332,6 @@ document.getElementById('btnTour').onclick = (e)=>{
   e.target.classList.toggle('on', !touring);
   if(touring) goTo((tourIdx+1)%CFG.waypoints.length);
 };
-controls.addEventListener('start', ()=>{ tween = null; }); // người dùng chạm vào → dừng tween
 
 const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
 let tourTimer = 0;
@@ -408,7 +403,6 @@ addEventListener('resize', ()=>{
   renderer.setSize(innerWidth, innerHeight);
   if(vRenderer){ vCamera.aspect = innerWidth/innerHeight; vCamera.updateProjectionMatrix(); vRenderer.setSize(innerWidth, innerHeight); }
 });
-const clock = new THREE.Clock();
 function animate(){
   if(!renderer) return;
   const dt = Math.min(clock.getDelta(), 0.1);
