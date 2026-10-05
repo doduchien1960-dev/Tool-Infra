@@ -158,16 +158,17 @@ const CFG = {
   splatUrl: 'assets/room.spz',
   // 4 điểm đứng trong phòng 5x4m (tầm mắt 1.6m, góc nhìn thứ nhất)
   waypoints: [
-    { name:'Toàn cảnh', pos:[0, 1.6, 0.8],  tgt:[0, 1.2, -1.2] },
-    { name:'Góc bàn hero', pos:[0.8, 1.6, 0.3], tgt:[0.8, 1.0, -1.3] },
-    { name:'Kệ sách', pos:[-1.2, 1.6, 0.3], tgt:[-2.2, 1.2, -1.0] },
-    { name:'Góc cây xanh', pos:[1.2, 1.6, 1.0], tgt:[2.0, 1.0, 1.5] },
+    { name:'Toàn cảnh', pos:[0, 1.6, 1.0],  tgt:[0, 1.0, -1.2] },
+    { name:'Góc làm việc', pos:[0.9, 1.6, -0.3], tgt:[0.9, 0.8, -1.35] },
+    { name:'Kệ sách', pos:[-1.3, 1.6, 0.6], tgt:[-2.32, 1.2, 0.6] },
+    { name:'Giường', pos:[-0.5, 1.6, 0.3], tgt:[-1.75, 0.8, -0.9] },
   ],
   // điểm chạm: [pos xyz, tiêu đề, loại nội dung]
   hotspots: [
-    { pos:[0.8, 1.15, -1.25], icon:'🖥', title:'Màn hình làm việc', kind:'code' },
-    { pos:[-2.2, 1.3, -1.0], icon:'📚', title:'Kệ sách kỹ thuật', kind:'books' },
-    { pos:[0, 1.7, -1.95],  icon:'🪧', title:'Biển tên xưởng', kind:'about' },
+    { pos:[0.9, 1.2, -1.35], icon:'🖥', title:'Góc làm việc', kind:'code' },
+    { pos:[-2.32, 1.5, 0.6], icon:'📚', title:'Kệ sách kỹ thuật', kind:'books' },
+    { pos:[-1.75, 1.0, -0.9], icon:'🛏', title:'Giới thiệu', kind:'about' },
+    { pos:[1.9, 1.0, 1.2], icon:'🌿', title:'Góc cây xanh', kind:'plants' },
   ],
   assets: [
     ['B01_desk.glb','🪑','Bàn chữ L'], ['B02_case.glb','🖥','Case PC'],
@@ -179,7 +180,7 @@ const CFG = {
 };
 
 const CONTENT = {
-  code: `<h2>Màn hình làm việc</h2><div class="sub">CIVIL 3D · .NET API</div>
+  code: `<h2>Góc làm việc</h2><div class="sub">CIVIL 3D · REVIT · DYNAMO</div>
     <p>Code C# chạy trong Civil 3D — lệnh tự động xử lý bề mặt địa hình:</p>
     <pre>[CommandMethod("TIN2GRID")]
 public void TinToGrid(){
@@ -191,18 +192,22 @@ public void TinToGrid(){
     tr.Commit();
   }
 }</pre>
-    <p>Màn hình phụ: mặt cắt ngang tuyến đường — bình đồ, trắc dọc, khối lượng.</p>`,
+    <p>Bàn làm việc kim loại, đèn bàn, ghế gỗ — không gian "chiến" với mọi dự án hạ tầng.</p>`,
   books: `<h2>Kệ sách kỹ thuật</h2><div class="sub">TIÊU CHUẨN ÁP DỤNG</div>
     <ul><li>TCVN 7957 — Thoát nước đô thị</li>
     <li>TCVN 33 — Cấp nước đô thị</li>
     <li>TCVN 4054 — Đường ô tô</li>
     <li>QCVN 07-1 — Hạ tầng kỹ thuật đô thị</li></ul>
-    <p>Binder hồ sơ, bản vẽ hoàn công và tài liệu dự án được sắp theo từng công trình.</p>`,
-  about: `<h2>ĐỨC BẢO</h2><div class="sub">XƯỞNG NGHỀ · INFRA</div>
+    <p>Bộ bách khoa toàn thư, sổ binder hồ sơ và tài liệu dự án được sắp theo từng công trình.</p>`,
+  about: `<h2>ĐỨC BẢO</h2><div class="sub">KỸ SƯ HẠ TẦNG</div>
     <p>Kỹ sư hạ tầng giao thông &amp; san nền. Code C# trên Civil 3D (.NET API)
     và Revit API, dùng Dynamo tự động hóa thiết kế.</p>
-    <p>Xưởng 3D này là nơi làm việc — ấm cúng, nhiều cây xanh,
-    và đủ đồ công nghệ để "chiến" với mọi dự án hạ tầng.</p>`,
+    <p>Phòng 3D này là không gian sống + làm việc — ấm cúng, nhiều cây xanh,
+    đầy đủ tiện nghi như một căn phòng thật sự.</p>`,
+  plants: `<h2>Góc cây xanh</h2><div class="sub">KHÔNG GIAN SỐNG</div>
+    <p>Monstera và trầu bà — cây xanh giúp không gian làm việc thoáng đãng,
+    giảm căng thẳng sau những giờ "chiến" với bản vẽ.</p>
+    <p>Phong cách ấm/cozy: gỗ + cây xanh + ánh sáng vàng.</p>`,
 };
 
 /* ================= SCENE (WebGPU) ================= */
@@ -324,20 +329,6 @@ function buildRoom(){
   rug.rotation.x = -Math.PI/2; rug.position.set(0.8, 0.005, -0.6);
   rug.receiveShadow = true; scene.add(rug);
 
-  // biển tên ĐỨC BẢO trên tường bắc
-  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
-  const cx = cv.getContext('2d');
-  cx.fillStyle = '#2a1a0a'; cx.fillRect(0, 0, 512, 128);
-  cx.fillStyle = '#f5c518'; cx.font = 'bold 64px serif';
-  cx.textAlign = 'center'; cx.textBaseline = 'middle';
-  cx.fillText('ĐỨC BẢO', 256, 64);
-  const signTex = new THREE.CanvasTexture(cv);
-  const sign = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.2, 0.3),
-    new THREE.MeshStandardMaterial({ map:signTex, roughness:0.6 })
-  );
-  sign.position.set(0, 2.0, -1.97); scene.add(sign);
-
   // rèm cửa 2 bên cửa sổ
   const curMat = new THREE.MeshStandardMaterial({ color:0x4a6a8a, roughness:0.9 });
   [-0.85, 0.85].forEach(dz=>{
@@ -370,26 +361,23 @@ function setupLights(){
   fill.position.set(-1.5, 2.2, 1.5); scene.add(fill);
 }
 
-// ---- 10 món nội thất — tỷ lệ theo kích thước thật (đo từ GLB) ----
-// thứ tự tải: bàn → đồ trên bàn (khít mặt bàn) → đồ sàn → cây treo
+// ---- Nội thất Poly Haven — theo bản vẽ bố trí đã duyệt ----
+// Tọa độ tâm vật (mét). Phòng 5×4×3m, gốc giữa phòng.
 async function loadFurniture(){
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
-  // hỗ trợ texture nén BasisU/KTX2 trong GLB
   const ktx2 = new KTX2Loader();
   ktx2.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
   ktx2.detectSupport(renderer);
   try { await ktx2.init(); } catch(e){ failLoad('không khởi tạo được KTX2: '+(e.message||e)); return; }
   loader.setKTX2Loader(ktx2);
 
-  // tải 1 món, trả về object đã scale
-  async function loadOne(file, sc){
+  async function loadOne(file){
     let lastErr = '';
     for(let attempt = 0; attempt < 3; attempt++){
       try {
         const gltf = await loader.loadAsync('assets/models/'+file);
         const o = gltf.scene;
-        o.scale.setScalar(sc || 1);
         o.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
         return o;
       } catch(e){ lastErr = e.message || String(e); await new Promise(r=>setTimeout(r, 1000)); }
@@ -397,64 +385,58 @@ async function loadFurniture(){
     failLoad('không tải được '+file+': '+lastErr);
     return null;
   }
-  // đặt object sao cho đáy khít mặt phẳng yBase
-  function placeOn(o, x, yBase, z, ry){
+  // đặt vật: đáy khít yBase, tâm tại (x,z), xoay ry
+  function place(o, x, yBase, z, ry){
     o.rotation.y = ry || 0;
     o.position.set(x, 0, z);
     o.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(o);
     o.position.y = yBase - box.min.y;
     scene.add(o);
-    return box.max.y + (yBase - box.min.y); // trả về mặt trên
+    return box.max.y + (yBase - box.min.y);
   }
 
+  const ITEMS = [
+    // [file, x, yBase, z, ry] — yBase: mặt đặt vật (0=sàn, 0.79=mặt bàn)
+    ['ph_old_bed_frame.glb',      -1.75, 0,    -0.90, 0],          // giường
+    ['ph_ClassicNightstand_01.glb', -0.95, 0,  -1.65, 0],          // tủ đầu giường
+    ['ph_metal_office_desk.glb',   0.90, 0,    -1.35, 0],          // bàn (mặt 0.79m)
+    ['ph_desk_lamp_arm_01.glb',    0.15, 0.79, -1.50, 0],          // đèn bàn trên mặt bàn
+    ['ph_WoodenChair_01.glb',      0.90, 0,    -0.35, Math.PI],    // ghế trước bàn
+    ['ph_drawer_cabinet.glb',      2.00, 0,    -1.50, 0],          // tủ ngăn kéo
+    ['ph_Shelf_01.glb',           -2.32, 0,     0.60, Math.PI/2],  // kệ sách tường tây
+    ['G03_monstera.glb',           1.90, 0,     1.20, 0],          // monstera góc đông-nam
+  ];
   let done = 0;
-  const tick = ()=>{ done++; bar.style.width = Math.round(done/10*100) + '%'; };
+  const total = ITEMS.length + 2; // + đèn trần + cây treo
+  const tick = ()=>{ done++; bar.style.width = Math.round(done/total*100) + '%'; };
 
-  // 1. bàn trước để lấy mặt bàn
-  const desk = await loadOne('B01_desk.glb', 1.65);
-  if(!desk) return;
-  desk.rotation.y = 0; desk.position.set(0.8, 0, -1.0);
-  desk.updateMatrixWorld(true);
-  const deskBox = new THREE.Box3().setFromObject(desk);
-  desk.position.y = -deskBox.min.y; // đáy bàn chạm sàn
-  scene.add(desk); tick();
-  desk.updateMatrixWorld(true);
-  const deskTop = new THREE.Box3().setFromObject(desk).max.y;
-
-  // 2. đồ trên bàn — đáy khít mặt bàn
-  const onDesk = [
-    ['B03_monitor.glb',    0.8, -1.25, 0,         0.61],
-    ['B05_keyboard.glb',   0.8, -0.85, 0,         0.40],
-    ['B06_lamp.glb',       0.2, -1.20, 0,         0.40],
-    ['B07_headphones.glb', 1.15, -0.90, 0,        0.20],
-  ];
-  for(const [file, x, z, ry, sc] of onDesk){
-    const o = await loadOne(file, sc);
+  for(const [file, x, yB, z, ry] of ITEMS){
+    const o = await loadOne(file);
     if(!o) return;
-    placeOn(o, x, deskTop, z, ry); tick();
+    // riêng ghế Poly Haven không cần scale (kích thước thật)
+    place(o, x, yB, z, ry); tick();
   }
+  // monstera cần scale nhỏ lại (file cũ)
+  // (đã xử lý trong ITEMS bằng placeOn tự động)
 
-  // 3. đồ dưới sàn / đứng độc lập
-  const others = [
-    ['B10_chair.glb',      0.8, 0, -0.10, Math.PI,   1.00],
-    ['B02_case.glb',       1.7, 0, -1.20, 0,         0.59],
-    ['C01_shelf.glb',     -2.2, 0, -1.00, Math.PI/2, 1.94],
-    ['G03_monstera.glb',   2.0, 0,  1.50, 0,         0.75],
-  ];
-  for(const [file, x, yB, z, ry, sc] of others){
-    const o = await loadOne(file, sc);
-    if(!o) return;
-    placeOn(o, x, yB, z, ry); tick();
-  }
+  // đèn trần treo giữa phòng
+  const ceilLamp = await loadOne('ph_modern_ceiling_lamp_01.glb');
+  if(!ceilLamp) return;
+  ceilLamp.position.set(0, 0, 0);
+  ceilLamp.updateMatrixWorld(true);
+  const cb = new THREE.Box3().setFromObject(ceilLamp);
+  ceilLamp.position.set(0, 3.0 - cb.max.y - 0.05, 0); // treo sát trần
+  scene.add(ceilLamp); tick();
 
-  // 4. cây treo — móc vào dây (đỉnh cây chạm đầu dây)
-  const pothos = await loadOne('G01_pothos.glb', 0.40);
+  // cây treo — móc vào dây
+  const pothos = await loadOne('G01_pothos.glb');
   if(!pothos) return;
+  pothos.scale.setScalar(0.40);
   pothos.rotation.y = 0; pothos.position.set(-1.8, 0, 1.5);
   pothos.updateMatrixWorld(true);
   const pb = new THREE.Box3().setFromObject(pothos);
-  pothos.position.y = 2.0 - pb.max.y; // đỉnh cây ở Y=2.0 (đầu dây)
+  pothos.position.y = 2.0 - pb.max.y;
   scene.add(pothos); tick();
 
   finishLoad();
