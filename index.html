@@ -162,7 +162,7 @@ const CFG = {
   splatUrl: 'assets/room.spz',
   // 4 góc tour: [pos xyz, target xyz]
   waypoints: [
-    { name:'Toàn cảnh', pos:[0, 2.2, 5.2],  tgt:[0, 1.2, 0] },
+    { name:'Toàn cảnh', pos:[0, 2.8, 8.0],  tgt:[0, 1.2, 0] },
     { name:'Góc bàn hero', pos:[2.6, 1.7, 2.2], tgt:[1.2, 1.0, -1.6] },
     { name:'Kệ sách', pos:[-2.8, 1.7, 1.6], tgt:[-2.2, 1.3, -1.8] },
     { name:'Góc cây xanh', pos:[0.6, 1.6, -3.4], tgt:[-0.6, 1.2, 0.6] },
@@ -251,12 +251,13 @@ async function init(){
   controls.addEventListener('start', ()=>{ tween = null; }); // người dùng chạm vào → dừng tween
 
   // tải splat phòng bằng SPZLoader native của three.js
-  // căn tâm phòng về gốc tọa độ (bbox thực: center -5.81,2.97,0.93)
+  // căn tâm + thu nhỏ phòng về kích thước hợp lý (bbox gốc 36m → ~9m)
   new SPZLoader().load(
     CFG.splatUrl,
     (geometry)=>{
       const splat = new GaussianSplat(geometry);
-      splat.position.set(5.81, -1.77, -0.93);
+      splat.scale.setScalar(0.25);
+      splat.position.set(1.45, 0.46, -0.23);
       scene.add(splat);
       finishLoad();
     },
