@@ -76,6 +76,7 @@
   #panel pre{background:#211a12;color:#e8d9bd;font-size:12px;line-height:1.6;
     padding:14px;border-radius:8px;overflow-x:auto;margin-bottom:12px}
   #panel ul{margin:0 0 12px 18px;font-size:14px;line-height:1.8}
+  #panel h3{font-size:15px;font-weight:600;margin:16px 0 8px;color:var(--accent)}
   #closePanel{position:absolute;top:14px;right:16px;border:none;background:none;
     font-size:22px;cursor:pointer;color:var(--ink)}
 
@@ -181,8 +182,16 @@ const CFG = {
 };
 
 const CONTENT = {
-  code: `<h2>Góc làm việc</h2><div class="sub">CIVIL 3D · REVIT · DYNAMO</div>
-    <p>Code C# chạy trong Civil 3D — lệnh tự động xử lý bề mặt địa hình:</p>
+  code: `<h2>💻 Góc làm việc</h2><div class="sub">CIVIL 3D · REVIT · DYNAMO</div>
+    <p><b>Kỹ sư hạ tầng giao thông & san nền.</b> Công việc hàng ngày là code C# chạy trong Civil 3D và Revit, tự động hóa những tác vụ thiết kế lặp đi lặp lại.</p>
+    <h3>🛠 Kỹ năng chính</h3>
+    <ul>
+      <li><b>Civil 3D .NET API</b> — viết lệnh [CommandMethod], xử lý Surface/TIN, Alignment, Corridor, Grading</li>
+      <li><b>Revit API</b> — IExternalCommand, Family, Parameter, quản lý Transaction</li>
+      <li><b>Dynamo</b> — Python node tự động hóa trên cả Civil 3D và Revit</li>
+      <li><b>San nền</b> — tính khối lượng đào đắp (mặt cắt ngang, lưới ô vuông, mass haul)</li>
+    </ul>
+    <h3>📝 Code mẫu</h3>
     <pre>[CommandMethod("TIN2GRID")]
 public void TinToGrid(){
   var doc = Application.DocumentManager.MdiActiveDocument;
@@ -193,22 +202,55 @@ public void TinToGrid(){
     tr.Commit();
   }
 }</pre>
-    <p>Bàn làm việc kim loại, đèn bàn, ghế gỗ — không gian "chiến" với mọi dự án hạ tầng.</p>`,
-  books: `<h2>Kệ sách kỹ thuật</h2><div class="sub">TIÊU CHUẨN ÁP DỤNG</div>
-    <ul><li>TCVN 7957 — Thoát nước đô thị</li>
-    <li>TCVN 33 — Cấp nước đô thị</li>
-    <li>TCVN 4054 — Đường ô tô</li>
-    <li>QCVN 07-1 — Hạ tầng kỹ thuật đô thị</li></ul>
-    <p>Bộ bách khoa toàn thư, sổ binder hồ sơ và tài liệu dự án được sắp theo từng công trình.</p>`,
-  about: `<h2>ĐỨC BẢO</h2><div class="sub">KỸ SƯ HẠ TẦNG</div>
-    <p>Kỹ sư hạ tầng giao thông &amp; san nền. Code C# trên Civil 3D (.NET API)
-    và Revit API, dùng Dynamo tự động hóa thiết kế.</p>
-    <p>Phòng 3D này là không gian sống + làm việc — ấm cúng, nhiều cây xanh,
-    đầy đủ tiện nghi như một căn phòng thật sự.</p>`,
-  plants: `<h2>Góc cây xanh</h2><div class="sub">KHÔNG GIAN SỐNG</div>
-    <p>Monstera và trầu bà — cây xanh giúp không gian làm việc thoáng đãng,
-    giảm căng thẳng sau những giờ "chiến" với bản vẽ.</p>
-    <p>Phong cách ấm/cozy: gỗ + cây xanh + ánh sáng vàng.</p>`,
+    <h3>📐 Dự án đang làm</h3>
+    <p><b>DBTool</b> — bộ công cụ .NET cho bản vẽ thoát nước: đã qua 75 vòng cải tiến, đối chiếu từng chi tiết với mẫu VHGPro.</p>`,
+  books: `<h2>🚪 Tủ đồ & tài liệu</h2><div class="sub">HỒ SƠ · BẢN VẼ · QUY TRÌNH</div>
+    <p>Tủ chứa hồ sơ dự án, bản vẽ hoàn công và tài liệu kỹ thuật được sắp xếp theo từng công trình.</p>
+    <h3>📚 Tiêu chuẩn áp dụng</h3>
+    <ul>
+      <li><b>TCVN 7957</b> — Thoát nước đô thị</li>
+      <li><b>TCVN 33</b> — Cấp nước đô thị</li>
+      <li><b>TCVN 4054</b> — Đường ô tô</li>
+      <li><b>QCVN 07-1</b> — Hạ tầng kỹ thuật đô thị</li>
+    </ul>
+    <h3>🗂 Quy trình làm việc</h3>
+    <ul>
+      <li>Prototype trước → duyệt → mới triển khai (không làm bừa)</li>
+      <li>Mọi hướng đi đều được chốt trước khi thực hiện</li>
+      <li>Kiểm tra kỹ từng chi tiết trước khi bàn giao</li>
+    </ul>
+    <h3>💾 Lưu trữ số</h3>
+    <p>53 skill chuyên môn, 41 repo GitHub, 3 orchestrator (thiết kế/code/media) — tất cả được tổ chức như một "bộ máy" làm việc.</p>`,
+  about: `<h2>🛏 Giới thiệu — ĐỨC BẢO</h2><div class="sub">KỸ SƯ HẠ TẦNG · NGƯỜI LÀM NGHỀ</div>
+    <p><b>Đỗ</b> — kỹ sư hạ tầng giao thông & san nền (earthworks/grading).</p>
+    <h3>🎯 Triết lý làm việc</h3>
+    <ul>
+      <li><b>Đúng hơn nhanh</b> — ưu tiên chất lượng, không chạy deadline ẩu</li>
+      <li><b>Không đặt luật thay người khác</b> — mọi quyết định đều do chủ công việc chốt</li>
+      <li><b>Nhìn tận mắt, verdict rõ ràng</b> — soi kỹ từng chi tiết thay vì sửa bừa</li>
+    </ul>
+    <h3>🌟 Điểm mạnh</h3>
+    <ul>
+      <li>Code C# sâu trên nền tảng Autodesk (Civil 3D + Revit)</li>
+      <li>Tư duy hệ thống — xây dựng quy trình, skill, công cụ tái sử dụng</li>
+      <li>Bar thẩm mỹ cao — chê thẳng khi chưa đạt, duyệt nhanh khi đúng</li>
+    </ul>
+    <h3>🏠 Không gian này</h3>
+    <p>Phòng 3D là nơi làm việc + nghỉ ngơi — ấm cúng, nhiều cây xanh, đầy đủ tiện nghi như một căn phòng thật sự. Góc làm việc để "chiến" dự án, giường để nghỉ sau những giờ căng thẳng.</p>`,
+  plants: `<h2>🌿 Góc cây xanh</h2><div class="sub">CÂN BẰNG · SỞ THÍCH</div>
+    <p>Monstera, trầu bà, dương xỉ — cây xanh giúp không gian làm việc thoáng đãng, giảm căng thẳng sau những giờ "chiến" với bản vẽ.</p>
+    <h3>🎨 Gu thẩm mỹ</h3>
+    <ul>
+      <li>Phong cách <b>ấm/cozy</b>: gỗ + cây xanh + ánh sáng vàng</li>
+      <li>Thích <b>editorial sáng</b> — nền sáng, nhiều khoảng trắng, chữ serif (ngoại trừ 2 dự án dark: web mưa & xưởng neon)</li>
+      <li>Chê đồ <b>"giả giả"</b> — bar "thật" rất cao, ưu tiên ảnh/video thật</li>
+    </ul>
+    <h3>🌱 Ngoài công việc</h3>
+    <ul>
+      <li>Dựng video, làm web, vọc AI & 3D</li>
+      <li>Xây dựng "bộ máy" skill/repo phục vụ công việc lâu dài</li>
+      <li>Đam mê tối ưu quy trình — việc gì lặp lại đều tự động hóa</li>
+    </ul>`,
 };
 
 /* ================= SCENE (WebGPU) ================= */
@@ -334,6 +376,7 @@ function buildHotspots(){
 const panel = document.getElementById('panel');
 const panelBody = document.getElementById('panelBody');
 function openPanel(h){
+  tween = null; // dừng tour khi xem thông tin
   panelBody.innerHTML = CONTENT[h.kind] || '';
   panel.classList.add('open');
 }
