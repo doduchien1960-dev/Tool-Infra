@@ -317,29 +317,33 @@ const FURNITURE = [
   ['G01_pothos.glb',    -1.8, 1.9,   1.5,  0],
   ['G03_monstera.glb',   2.0, 0,     1.5,  0],
 ];
-function loadFurniture(){
+async function loadFurniture(){
   const loader = new GLTFLoader();
   // hỗ trợ texture nén BasisU/KTX2 trong GLB
   const ktx2 = new KTX2Loader();
   ktx2.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
   ktx2.detectSupport(renderer);
+  try { await ktx2.init(); } catch(e){ failLoad('không khởi tạo được KTX2: '+(e.message||e)); return; }
   loader.setKTX2Loader(ktx2);
   let done = 0;
-  FURNITURE.forEach(([file, x, y, z, ry], i)=>{
-    loader.load('assets/models/'+file,
-      (gltf)=>{
+  // tải tuần tự từng món (tránh race condition WASM) + retry 3 lần
+  for(const [file, x, y, z, ry] of FURNITURE){
+    let ok = false, lastErr = '';
+    for(let attempt = 0; attempt < 3 && !ok; attempt++){
+      try {
+        const gltf = await loader.loadAsync('assets/models/'+file);
         const o = gltf.scene;
         o.position.set(x, y, z); o.rotation.y = ry;
         o.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
         scene.add(o);
-        done++;
-        bar.style.width = Math.round(done/FURNITURE.length*100) + '%';
-        if(done === FURNITURE.length) finishLoad();
-      },
-      undefined,
-      (err)=>failLoad('không tải được '+file)
-    );
-  });
+        ok = true;
+      } catch(e){ lastErr = e.message || String(e); await new Promise(r=>setTimeout(r, 1000)); }
+    }
+    if(!ok){ failLoad('không tải được '+file+': '+lastErr); return; }
+    done++;
+    bar.style.width = Math.round(done/FURNITURE.length*100) + '%';
+  }
+  finishLoad();
   setTimeout(()=>{ if(!loadDone) failLoad('quá thời gian chờ'); }, 120000);
 }
 init();
