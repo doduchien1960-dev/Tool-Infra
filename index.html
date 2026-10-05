@@ -143,7 +143,9 @@
 <script type="importmap">
 { "imports": {
   "three": "https://unpkg.com/three@0.186.1/build/three.module.js",
-  "three/addons/": "https://unpkg.com/three@0.186.1/examples/jsm/"
+  "three/addons/": "https://unpkg.com/three@0.186.1/examples/jsm/",
+  "three/tsl": "https://unpkg.com/three@0.186.1/build/three.tsl.js",
+  "three/webgpu": "https://unpkg.com/three@0.186.1/build/three.webgpu.js"
 } }
 </script>
 
@@ -153,6 +155,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { SPZLoader } from 'three/addons/loaders/SPZLoader.js';
 import { GaussianSplat } from 'three/addons/objects/GaussianSplat.js';
+import { WebGPURenderer } from 'three/webgpu';
 
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
@@ -206,24 +209,8 @@ public void TinToGrid(){
     và đủ đồ công nghệ để "chiến" với mọi dự án hạ tầng.</p>`,
 };
 
-/* ================= SCENE ================= */
+/* ================= SCENE (WebGPU) ================= */
 const container = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
-container.appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x14100b);
-const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(...CFG.waypoints[0].pos);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(...CFG.waypoints[0].tgt);
-controls.enableDamping = true;
-controls.minDistance = 0.8; controls.maxDistance = 7;
-controls.maxPolarAngle = 1.72;
-
 const bar = document.querySelector('#bar i');
 const loadMsg = document.querySelector('#loader p');
 let loadDone = false;
@@ -237,22 +224,45 @@ function failLoad(msg){
   loadMsg.textContent = 'LỖI TẢI PHÒNG: ' + msg + ' — THỬ TẢI LẠI TRANG (F5)';
   loadMsg.style.color = '#e08a7e';
 }
-// tải splat phòng bằng SPZLoader native của three.js
-new SPZLoader().load(
-  CFG.splatUrl,
-  (geometry)=>{                       // onLoad
-    scene.add(new GaussianSplat(geometry));
-    finishLoad();
-  },
-  (e)=>{                              // onProgress
-    if(e.total > 0) bar.style.width = Math.round(e.loaded/e.total*100) + '%';
-  },
-  (err)=>failLoad(err && err.message ? err.message : 'không rõ')  // onError
-);
-// lưới an toàn: 120s chưa xong thì báo
-setTimeout(()=>{
-  if(!loadDone) failLoad('quá thời gian chờ');
-}, 120000);
+
+let renderer, scene, camera, controls;
+async function init(){
+  if(!navigator.gpu){
+    failLoad('trình duyệt chưa hỗ trợ WebGPU — hãy dùng Chrome/Edge/Safari mới nhất');
+    return;
+  }
+  renderer = new WebGPURenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  container.appendChild(renderer.domElement);
+  await renderer.init();
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x14100b);
+  camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+  camera.position.set(...CFG.waypoints[0].pos);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(...CFG.waypoints[0].tgt);
+  controls.enableDamping = true;
+  controls.minDistance = 0.8; controls.maxDistance = 7;
+  controls.maxPolarAngle = 1.72;
+
+  // tải splat phòng bằng SPZLoader native của three.js
+  new SPZLoader().load(
+    CFG.splatUrl,
+    (geometry)=>{
+      scene.add(new GaussianSplat(geometry));
+      finishLoad();
+    },
+    (e)=>{ if(e.total > 0) bar.style.width = Math.round(e.loaded/e.total*100) + '%'; },
+    (err)=>failLoad(err && err.message ? err.message : 'không rõ')
+  );
+  setTimeout(()=>{ if(!loadDone) failLoad('quá thời gian chờ'); }, 120000);
+
+  renderer.setAnimationLoop(animate);
+}
+init();
 
 /* ================= HOTSPOT ================= */
 const hsLayer = document.body;
@@ -390,14 +400,14 @@ addEventListener('resize', ()=>{
   if(vRenderer){ vCamera.aspect = innerWidth/innerHeight; vCamera.updateProjectionMatrix(); vRenderer.setSize(innerWidth, innerHeight); }
 });
 const clock = new THREE.Clock();
-(function animate(){
-  requestAnimationFrame(animate);
+function animate(){
+  if(!renderer) return;
   const dt = Math.min(clock.getDelta(), 0.1);
   updateTour(dt);
   controls.update();
   updateHotspots();
   renderer.render(scene, camera);
-})();
+}
 </script>
 </body>
 </html>
