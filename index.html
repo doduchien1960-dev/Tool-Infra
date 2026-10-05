@@ -142,9 +142,8 @@
 
 <script type="importmap">
 { "imports": {
-  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-  "@sparkjsdev/spark": "https://unpkg.com/@sparkjsdev/spark@2.3.1/dist/spark.module.js"
+  "three": "https://unpkg.com/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.186.1/examples/jsm/"
 } }
 </script>
 
@@ -152,7 +151,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { SplatMesh, SparkRenderer } from '@sparkjsdev/spark';
+import { SPZLoader } from 'three/addons/loaders/SPZLoader.js';
+import { GaussianSplat } from 'three/addons/objects/GaussianSplat.js';
 
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
@@ -224,9 +224,6 @@ controls.enableDamping = true;
 controls.minDistance = 0.8; controls.maxDistance = 7;
 controls.maxPolarAngle = 1.72;
 
-const spark = new SparkRenderer({ renderer });
-scene.add(spark);
-
 const bar = document.querySelector('#bar i');
 const loadMsg = document.querySelector('#loader p');
 let loadDone = false;
@@ -236,21 +233,26 @@ function finishLoad(){
   setTimeout(()=>document.getElementById('loader').classList.add('done'), 400);
   buildHotspots(); buildTour(); startTour();
 }
-const room = new SplatMesh({
-  url: CFG.splatUrl,
-  onProgress: (e)=>{
+function failLoad(msg){
+  loadMsg.textContent = 'LỖI TẢI PHÒNG: ' + msg + ' — THỬ TẢI LẠI TRANG (F5)';
+  loadMsg.style.color = '#e08a7e';
+}
+// tải splat phòng bằng SPZLoader native của three.js
+new SPZLoader().load(
+  CFG.splatUrl,
+  (geometry)=>{                       // onLoad
+    scene.add(new GaussianSplat(geometry));
+    finishLoad();
+  },
+  (e)=>{                              // onProgress
     if(e.total > 0) bar.style.width = Math.round(e.loaded/e.total*100) + '%';
   },
-  onLoad: ()=>finishLoad(),
-});
-scene.add(room);
-// lưới an toàn: 90s chưa xong thì báo lỗi
+  (err)=>failLoad(err && err.message ? err.message : 'không rõ')  // onError
+);
+// lưới an toàn: 120s chưa xong thì báo
 setTimeout(()=>{
-  if(!loadDone){
-    loadMsg.textContent = 'TẢI PHÒNG LÂU QUÁ — THỬ TẢI LẠI TRANG (F5)';
-    loadMsg.style.color = '#e08a7e';
-  }
-}, 90000);
+  if(!loadDone) failLoad('quá thời gian chờ');
+}, 120000);
 
 /* ================= HOTSPOT ================= */
 const hsLayer = document.body;
