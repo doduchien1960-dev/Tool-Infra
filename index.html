@@ -287,6 +287,27 @@ function buildRoom(){
   mkWall(4, -2.5, 0, Math.PI/2); mkWall(4, 2.5, 0, -Math.PI/2);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(5, 4), matCeil);
   ceil.rotation.x = Math.PI/2; ceil.position.y = 3; scene.add(ceil);
+
+  // cửa sổ trên tường đông (X=2.5): khung gỗ + kính + trời xanh
+  const winG = new THREE.Group();
+  const frameMat = new THREE.MeshStandardMaterial({ color:0x6b4a2a, roughness:0.6 });
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.2, 1.4), frameMat);
+  frame.castShadow = true; winG.add(frame);
+  const skyMat = new THREE.MeshBasicMaterial({ color:0x87ceeb });
+  const sky = new THREE.Mesh(new THREE.PlaneGeometry(1.24, 1.04), skyMat);
+  sky.rotation.y = -Math.PI/2; sky.position.x = -0.045; winG.add(sky);
+  // thanh chia ô
+  const barV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.04, 0.04), frameMat);
+  barV.position.x = -0.05; winG.add(barV);
+  const barH = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 1.24), frameMat);
+  barH.position.x = -0.05; winG.add(barH);
+  winG.position.set(2.46, 1.6, 0.5);
+  scene.add(winG);
+
+  // dây treo cây trầu bà từ trần xuống
+  const ropeMat = new THREE.MeshStandardMaterial({ color:0x8a6d3b, roughness:0.9 });
+  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.0, 8), ropeMat);
+  rope.position.set(-1.8, 2.5, 1.5); scene.add(rope);
 }
 
 // ---- Ánh sáng ----
@@ -304,19 +325,19 @@ function setupLights(){
   fill.position.set(-1.5, 2.2, 1.5); scene.add(fill);
 }
 
-// ---- 10 món nội thất (vị trí đã chốt từ layout Blender) ----
+// ---- 10 món nội thất — tỷ lệ theo kích thước thật (đo từ GLB) ----
+// [file, x, y, z, ry, scale] — scale để về kích thước đời thực
 const FURNITURE = [
-  // [file, x, y, z, ry]
-  ['B01_desk.glb',       0.8, 0,    -1.0,  0],
-  ['B10_chair.glb',      0.8, 0,    -0.1,  Math.PI],
-  ['B03_monitor.glb',    0.8, 0.75, -1.25, 0],
-  ['B05_keyboard.glb',   0.8, 0.76, -0.85, 0],
-  ['B02_case.glb',       1.6, 0,    -1.2,  0],
-  ['B06_lamp.glb',       0.2, 0.75, -1.2,  0],
-  ['B07_headphones.glb', 1.15,0.76, -0.9,  0],
-  ['C01_shelf.glb',     -2.2, 0,    -1.0,  Math.PI/2],
-  ['G01_pothos.glb',    -1.8, 1.9,   1.5,  0],
-  ['G03_monstera.glb',   2.0, 0,     1.5,  0],
+  ['B01_desk.glb',       0.8, 0,    -1.0,  0,         1.65],  // bàn 1.4m
+  ['B10_chair.glb',      0.8, 0,    -0.1,  Math.PI,   1.00],  // ghế 1.06m
+  ['B03_monitor.glb',    0.8, 0.61, -1.25, 0,         0.61],  // màn 27" 0.61m
+  ['B05_keyboard.glb',   0.8, 0.62, -0.85, 0,         0.40],  // phím 0.45m
+  ['B02_case.glb',       1.7, 0,    -1.2,  0,         0.59],  // case 0.45m
+  ['B06_lamp.glb',       0.2, 0.61, -1.2,  0,         0.40],  // đèn 0.4m
+  ['B07_headphones.glb', 1.15,0.62, -0.9,  0,        0.20],  // tai nghe 0.2m
+  ['C01_shelf.glb',     -2.2, 0,    -1.0,  Math.PI/2, 1.94],  // kệ 1.8m
+  ['G01_pothos.glb',    -1.8, 1.8,   1.5,  0,         0.40],  // trầu bà treo
+  ['G03_monstera.glb',   2.0, 0,     1.5,  0,         0.75],  // monstera 0.8m
 ];
 async function loadFurniture(){
   const loader = new GLTFLoader();
@@ -329,13 +350,13 @@ async function loadFurniture(){
   loader.setKTX2Loader(ktx2);
   let done = 0;
   // tải tuần tự từng món (tránh race condition WASM) + retry 3 lần
-  for(const [file, x, y, z, ry] of FURNITURE){
+  for(const [file, x, y, z, ry, sc] of FURNITURE){
     let ok = false, lastErr = '';
     for(let attempt = 0; attempt < 3 && !ok; attempt++){
       try {
         const gltf = await loader.loadAsync('assets/models/'+file);
         const o = gltf.scene;
-        o.position.set(x, y, z); o.rotation.y = ry;
+        o.position.set(x, y, z); o.rotation.y = ry; o.scale.setScalar(sc || 1);
         o.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
         scene.add(o);
         ok = true;
