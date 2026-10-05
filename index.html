@@ -159,18 +159,18 @@ import { WebGPURenderer } from 'three/webgpu';
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
   splatUrl: 'assets/room.spz',
-  // 4 điểm đứng bên trong phòng (vòng tròn, tầm mắt 1.6m, nhìn vào tâm)
+  // 4 điểm đứng bên trong phòng (quanh tâm thực, tầm mắt 1.6m)
   waypoints: [
-    { name:'Toàn cảnh', pos:[0, 1.6, 1.0],  tgt:[0, 1.2, -1.0] },
-    { name:'Góc bàn hero', pos:[3.0, 1.6, 0], tgt:[-1.0, 1.2, 0] },
-    { name:'Kệ sách', pos:[0, 1.6, -1.0], tgt:[0, 1.2, 1.0] },
-    { name:'Góc cây xanh', pos:[-3.0, 1.6, 0], tgt:[1.0, 1.2, 0] },
+    { name:'Toàn cảnh', pos:[0, 1.6, 0.5],  tgt:[0, 1.3, -0.8] },
+    { name:'Góc bàn hero', pos:[0.8, 1.6, 0.3], tgt:[1.5, 1.2, -0.5] },
+    { name:'Kệ sách', pos:[-0.8, 1.6, 0.3], tgt:[-1.5, 1.3, -0.5] },
+    { name:'Góc cây xanh', pos:[0, 1.6, -0.5], tgt:[0.5, 1.2, 0.8] },
   ],
   // điểm chạm: [pos xyz, tiêu đề, loại nội dung]
   hotspots: [
-    { pos:[2.2, 1.35, -0.8], icon:'🖥', title:'Màn hình làm việc', kind:'code' },
-    { pos:[-2.6, 1.5, -0.8], icon:'📚', title:'Kệ sách kỹ thuật', kind:'books' },
-    { pos:[0.4, 1.1, -0.6],  icon:'🪧', title:'Biển tên xưởng', kind:'about' },
+    { pos:[1.0, 1.35, -0.4], icon:'🖥', title:'Màn hình làm việc', kind:'code' },
+    { pos:[-1.2, 1.5, -0.4], icon:'📚', title:'Kệ sách kỹ thuật', kind:'books' },
+    { pos:[0.2, 1.1, -0.3],  icon:'🪧', title:'Biển tên xưởng', kind:'about' },
   ],
   assets: [
     ['B01_desk.glb','🪑','Bàn chữ L'], ['B02_case.glb','🖥','Case PC'],
@@ -269,13 +269,13 @@ async function init(){
   setupLook();
 
   // tải splat phòng bằng SPZLoader native của three.js
-  // căn tâm + thu nhỏ phòng về kích thước hợp lý (bbox gốc 36m → ~9m)
+  // tâm thực (trung bình mật độ): (0.58,-1.10,-0.28), scale 0.25
   new SPZLoader().load(
     CFG.splatUrl,
     (geometry)=>{
       const splat = new GaussianSplat(geometry);
       splat.scale.setScalar(0.25);
-      splat.position.set(1.45, 0.46, -0.23);
+      splat.position.set(-0.14, 1.48, 0.07);
       scene.add(splat);
       finishLoad();
     },
