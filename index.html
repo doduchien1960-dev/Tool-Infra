@@ -9,7 +9,7 @@
     --ink:#2b2118; --paper:#faf6ef; --accent:#b4762a; --moss:#5c6e4e;
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;overflow:hidden;background:#14100b;color:var(--ink);
+  html,body{height:100%;overflow:hidden;background:#f5f2ec;color:var(--ink);
     font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
   #scene{position:fixed;inset:0}
   #scene canvas{display:block}
@@ -17,7 +17,7 @@
   /* ---------- loading ---------- */
   #loader{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:18px;
-    background:#14100b url('assets/room_360.webp') center/cover;transition:opacity .8s}
+    background:#f5f2ec;transition:opacity .8s}
   #loader.done{opacity:0;pointer-events:none}
   #loader .box{background:rgba(20,16,11,.72);backdrop-filter:blur(8px);
     padding:28px 40px;border-radius:14px;text-align:center;color:#f3e9d7;
@@ -152,16 +152,17 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
   splatUrl: 'assets/room.spz',
-  // 4 điểm đứng trong phòng tiny (~6m, tâm tại gốc, tầm mắt 1.6m)
+  // tour: các góc nhìn orbit quanh phòng tiny (~6m)
   waypoints: [
-    { name:'Toàn cảnh', pos:[0, 1.6, 2.0],  tgt:[0, 1.0, -1.0] },
-    { name:'Góc làm việc', pos:[1.5, 1.6, 1.0], tgt:[-1.5, 0.8, -1.5] },
-    { name:'Giường', pos:[-1.5, 1.6, 1.5], tgt:[-2.0, 0.6, -2.0] },
-    { name:'Cửa sổ', pos:[0, 1.6, -2.0], tgt:[0, 1.2, -2.8] },
+    { name:'Toàn cảnh', pos:[7, 5, 8],  tgt:[0, 1.0, 0] },
+    { name:'Góc làm việc', pos:[4, 3, 5], tgt:[-1, 0.8, -1] },
+    { name:'Giường', pos:[-5, 3.5, 5], tgt:[-1.5, 0.6, -1.5] },
+    { name:'Trên cao', pos:[0, 10, 4], tgt:[0, 0.5, 0] },
   ],
   // điểm chạm: vị trí tương đối trong phòng tiny
   hotspots: [
@@ -227,30 +228,16 @@ function failLoad(msg){
   loadMsg.style.color = '#e08a7e';
 }
 
-let renderer, scene, camera;
-let yaw = 0, pitch = 0; // góc nhìn thứ nhất
-function lookAt(tgt){
-  const d = new THREE.Vector3(...tgt).sub(camera.position);
-  yaw = Math.atan2(-d.x, -d.z);
-  pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
-  camera.rotation.set(pitch, yaw, 0);
-}
-// kéo chuột để xoay đầu nhìn quanh (vị trí đứng yên)
-function setupLook(){
-  camera.rotation.order = 'YXZ';
-  let dragging = false, lx = 0, ly = 0;
-  const el = renderer.domElement;
-  el.style.touchAction = 'none';
-  el.addEventListener('pointerdown', e=>{ dragging = true; lx = e.clientX; ly = e.clientY; tween = null; });
-  addEventListener('pointermove', e=>{
-    if(!dragging) return;
-    yaw -= (e.clientX - lx) * 0.004;
-    pitch -= (e.clientY - ly) * 0.004;
-    pitch = Math.max(-1.2, Math.min(1.2, pitch));
-    camera.rotation.set(pitch, yaw, 0);
-    lx = e.clientX; ly = e.clientY;
-  });
-  addEventListener('pointerup', ()=>{ dragging = false; });
+let renderer, scene, camera, controls;
+// điều khiển tự do: xoay / zoom / di chuyển
+function setupControls(){
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 3;
+  controls.maxDistance = 20;
+  controls.maxPolarAngle = Math.PI * 0.495; // không chui xuống dưới sàn
+  controls.target.set(0, 1.2, 0);
 }
 async function init(){
   // WebGL thường (tương thích mọi trình duyệt)
@@ -264,11 +251,10 @@ async function init(){
   container.appendChild(renderer.domElement);
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1510);
-  camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
-  camera.position.set(...CFG.waypoints[0].pos);
-  lookAt(CFG.waypoints[0].tgt);
-  setupLook();
+  scene.background = new THREE.Color(0xf5f2ec); // nền sáng hợp với phòng tiny
+  camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 100);
+  camera.position.set(7, 5, 8); // góc nhìn isometric từ ngoài
+  setupControls();
 
   buildRoom();
   setupLights();
@@ -383,14 +369,10 @@ function markTour(){
 function goTo(i){
   tourIdx = i; markTour();
   const w = CFG.waypoints[i];
-  // tính yaw/pitch khi đứng ở w.pos nhìn về w.tgt
-  const d = new THREE.Vector3(...w.tgt).sub(new THREE.Vector3(...w.pos));
-  const yaw1 = Math.atan2(-d.x, -d.z);
-  const pitch1 = Math.atan2(d.y, Math.hypot(d.x, d.z));
   tween = {
     t:0,
     p0:camera.position.clone(), p1:new THREE.Vector3(...w.pos),
-    yaw0:yaw, yaw1:yaw1, pitch0:pitch, pitch1:pitch1,
+    t0:controls.target.clone(), t1:new THREE.Vector3(...w.tgt),
   };
 }
 function startTour(){ setTimeout(()=>{ if(touring) goTo(1); }, 2500); }
@@ -408,13 +390,7 @@ function updateTour(dt){
     tween.t = Math.min(tween.t + dt/2.2, 1);
     const e = ease(tween.t);
     camera.position.lerpVectors(tween.p0, tween.p1, e);
-    // nội suy góc nhìn (xử lý vòng yaw cho mượt)
-    let dy = tween.yaw1 - tween.yaw0;
-    while(dy > Math.PI) dy -= Math.PI*2;
-    while(dy < -Math.PI) dy += Math.PI*2;
-    yaw = tween.yaw0 + dy * e;
-    pitch = tween.pitch0 + (tween.pitch1 - tween.pitch0) * e;
-    camera.rotation.set(pitch, yaw, 0);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
     if(tween.t >= 1){ tween = null; tourTimer = 0; }
   } else if(touring){
     tourTimer += dt;
@@ -481,6 +457,7 @@ function animate(){
   if(!renderer) return;
   const dt = Math.min(clock.getDelta(), 0.1);
   updateTour(dt);
+  if(controls) controls.update();
   updateHotspots();
   renderer.render(scene, camera);
 }
