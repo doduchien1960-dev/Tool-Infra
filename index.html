@@ -150,6 +150,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { BasisTextureLoader } from 'three/addons/loaders/BasisTextureLoader.js';
 
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
@@ -318,6 +319,11 @@ const FURNITURE = [
 ];
 function loadFurniture(){
   const loader = new GLTFLoader();
+  // hỗ trợ texture nén BasisU trong GLB
+  const basis = new BasisTextureLoader();
+  basis.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
+  basis.detectSupport(renderer);
+  loader.setBasisTextureLoader(basis);
   let done = 0;
   FURNITURE.forEach(([file, x, y, z, ry], i)=>{
     loader.load('assets/models/'+file,
