@@ -2,6 +2,11 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<script>
+window.__errs=[];
+window.onerror=function(m,s,l){window.__errs.push(m+' L'+l);var d=document.getElementById('dbg');if(d){d.style.display='block';d.textContent=window.__errs.join('\n');}};
+window.addEventListener('unhandledrejection',function(e){var m='UNHANDLED: '+((e.reason&&e.reason.message)||e.reason);window.__errs.push(m);var d=document.getElementById('dbg');if(d){d.style.display='block';d.textContent=window.__errs.join('\n');}});
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xưởng ĐỨC BẢO — Phòng 3D</title>
 <style>
@@ -117,6 +122,7 @@
     <div id="bar"><i></i></div>
   </div>
 </div>
+<div id="dbg" style="display:none;position:fixed;bottom:0;left:0;right:0;max-height:40%;overflow:auto;background:#300;color:#f88;font:11px monospace;padding:8px;z-index:99;white-space:pre-wrap"></div>
 
 <div id="hud">
   <div id="brand">ĐỨC BẢO · XƯỞNG 3D</div>
