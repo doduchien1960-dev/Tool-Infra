@@ -308,6 +308,51 @@ function buildRoom(){
   const ropeMat = new THREE.MeshStandardMaterial({ color:0x8a6d3b, roughness:0.9 });
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.0, 8), ropeMat);
   rope.position.set(-1.8, 2.5, 1.5); scene.add(rope);
+
+  // chân tường (baseboard)
+  const bbMat = new THREE.MeshStandardMaterial({ color:0x5a3d22, roughness:0.7 });
+  const mkBB = (w, x, z, ry)=>{
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, 0.03), bbMat);
+    m.position.set(x, 0.05, z); m.rotation.y = ry; scene.add(m);
+  };
+  mkBB(5, 0, -1.985, 0); mkBB(5, 0, 1.985, 0);
+  mkBB(4, -2.485, 0, Math.PI/2); mkBB(4, 2.485, 0, Math.PI/2);
+
+  // thảm dưới khu bàn
+  const rugMat = new THREE.MeshStandardMaterial({ color:0x7a2e2e, roughness:0.95 });
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.0), rugMat);
+  rug.rotation.x = -Math.PI/2; rug.position.set(0.8, 0.005, -0.6);
+  rug.receiveShadow = true; scene.add(rug);
+
+  // biển tên ĐỨC BẢO trên tường bắc
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128;
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#2a1a0a'; cx.fillRect(0, 0, 512, 128);
+  cx.fillStyle = '#f5c518'; cx.font = 'bold 64px serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText('ĐỨC BẢO', 256, 64);
+  const signTex = new THREE.CanvasTexture(cv);
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.2, 0.3),
+    new THREE.MeshStandardMaterial({ map:signTex, roughness:0.6 })
+  );
+  sign.position.set(0, 2.0, -1.97); scene.add(sign);
+
+  // rèm cửa 2 bên cửa sổ
+  const curMat = new THREE.MeshStandardMaterial({ color:0x4a6a8a, roughness:0.9 });
+  [-0.85, 0.85].forEach(dz=>{
+    const cur = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.5, 0.3), curMat);
+    cur.position.set(2.4, 1.55, 0.5 + dz); cur.castShadow = true; scene.add(cur);
+  });
+
+  // đèn trần
+  const lampShade = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.25, 0.35, 0.2, 16),
+    new THREE.MeshStandardMaterial({ color:0xf5e6c8, roughness:0.5 })
+  );
+  lampShade.position.set(0, 2.85, 0); scene.add(lampShade);
+  const bulb = new THREE.PointLight(0xffe0b0, 8, 7, 2);
+  bulb.position.set(0, 2.7, 0); scene.add(bulb);
 }
 
 // ---- Ánh sáng ----
@@ -326,19 +371,7 @@ function setupLights(){
 }
 
 // ---- 10 món nội thất — tỷ lệ theo kích thước thật (đo từ GLB) ----
-// [file, x, y, z, ry, scale] — scale để về kích thước đời thực
-const FURNITURE = [
-  ['B01_desk.glb',       0.8, 0,    -1.0,  0,         1.65],  // bàn 1.4m
-  ['B10_chair.glb',      0.8, 0,    -0.1,  Math.PI,   1.00],  // ghế 1.06m
-  ['B03_monitor.glb',    0.8, 0.61, -1.25, 0,         0.61],  // màn 27" 0.61m
-  ['B05_keyboard.glb',   0.8, 0.62, -0.85, 0,         0.40],  // phím 0.45m
-  ['B02_case.glb',       1.7, 0,    -1.2,  0,         0.59],  // case 0.45m
-  ['B06_lamp.glb',       0.2, 0.61, -1.2,  0,         0.40],  // đèn 0.4m
-  ['B07_headphones.glb', 1.15,0.62, -0.9,  0,        0.20],  // tai nghe 0.2m
-  ['C01_shelf.glb',     -2.2, 0,    -1.0,  Math.PI/2, 1.94],  // kệ 1.8m
-  ['G01_pothos.glb',    -1.8, 1.8,   1.5,  0,         0.40],  // trầu bà treo
-  ['G03_monstera.glb',   2.0, 0,     1.5,  0,         0.75],  // monstera 0.8m
-];
+// thứ tự tải: bàn → đồ trên bàn (khít mặt bàn) → đồ sàn → cây treo
 async function loadFurniture(){
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
@@ -348,24 +381,82 @@ async function loadFurniture(){
   ktx2.detectSupport(renderer);
   try { await ktx2.init(); } catch(e){ failLoad('không khởi tạo được KTX2: '+(e.message||e)); return; }
   loader.setKTX2Loader(ktx2);
-  let done = 0;
-  // tải tuần tự từng món (tránh race condition WASM) + retry 3 lần
-  for(const [file, x, y, z, ry, sc] of FURNITURE){
-    let ok = false, lastErr = '';
-    for(let attempt = 0; attempt < 3 && !ok; attempt++){
+
+  // tải 1 món, trả về object đã scale
+  async function loadOne(file, sc){
+    let lastErr = '';
+    for(let attempt = 0; attempt < 3; attempt++){
       try {
         const gltf = await loader.loadAsync('assets/models/'+file);
         const o = gltf.scene;
-        o.position.set(x, y, z); o.rotation.y = ry; o.scale.setScalar(sc || 1);
+        o.scale.setScalar(sc || 1);
         o.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
-        scene.add(o);
-        ok = true;
+        return o;
       } catch(e){ lastErr = e.message || String(e); await new Promise(r=>setTimeout(r, 1000)); }
     }
-    if(!ok){ failLoad('không tải được '+file+': '+lastErr); return; }
-    done++;
-    bar.style.width = Math.round(done/FURNITURE.length*100) + '%';
+    failLoad('không tải được '+file+': '+lastErr);
+    return null;
   }
+  // đặt object sao cho đáy khít mặt phẳng yBase
+  function placeOn(o, x, yBase, z, ry){
+    o.rotation.y = ry || 0;
+    o.position.set(x, 0, z);
+    o.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(o);
+    o.position.y = yBase - box.min.y;
+    scene.add(o);
+    return box.max.y + (yBase - box.min.y); // trả về mặt trên
+  }
+
+  let done = 0;
+  const tick = ()=>{ done++; bar.style.width = Math.round(done/10*100) + '%'; };
+
+  // 1. bàn trước để lấy mặt bàn
+  const desk = await loadOne('B01_desk.glb', 1.65);
+  if(!desk) return;
+  desk.rotation.y = 0; desk.position.set(0.8, 0, -1.0);
+  desk.updateMatrixWorld(true);
+  const deskBox = new THREE.Box3().setFromObject(desk);
+  desk.position.y = -deskBox.min.y; // đáy bàn chạm sàn
+  scene.add(desk); tick();
+  desk.updateMatrixWorld(true);
+  const deskTop = new THREE.Box3().setFromObject(desk).max.y;
+
+  // 2. đồ trên bàn — đáy khít mặt bàn
+  const onDesk = [
+    ['B03_monitor.glb',    0.8, -1.25, 0,         0.61],
+    ['B05_keyboard.glb',   0.8, -0.85, 0,         0.40],
+    ['B06_lamp.glb',       0.2, -1.20, 0,         0.40],
+    ['B07_headphones.glb', 1.15, -0.90, 0,        0.20],
+  ];
+  for(const [file, x, z, ry, sc] of onDesk){
+    const o = await loadOne(file, sc);
+    if(!o) return;
+    placeOn(o, x, deskTop, z, ry); tick();
+  }
+
+  // 3. đồ dưới sàn / đứng độc lập
+  const others = [
+    ['B10_chair.glb',      0.8, 0, -0.10, Math.PI,   1.00],
+    ['B02_case.glb',       1.7, 0, -1.20, 0,         0.59],
+    ['C01_shelf.glb',     -2.2, 0, -1.00, Math.PI/2, 1.94],
+    ['G03_monstera.glb',   2.0, 0,  1.50, 0,         0.75],
+  ];
+  for(const [file, x, yB, z, ry, sc] of others){
+    const o = await loadOne(file, sc);
+    if(!o) return;
+    placeOn(o, x, yB, z, ry); tick();
+  }
+
+  // 4. cây treo — móc vào dây (đỉnh cây chạm đầu dây)
+  const pothos = await loadOne('G01_pothos.glb', 0.40);
+  if(!pothos) return;
+  pothos.rotation.y = 0; pothos.position.set(-1.8, 0, 1.5);
+  pothos.updateMatrixWorld(true);
+  const pb = new THREE.Box3().setFromObject(pothos);
+  pothos.position.y = 2.0 - pb.max.y; // đỉnh cây ở Y=2.0 (đầu dây)
+  scene.add(pothos); tick();
+
   finishLoad();
   setTimeout(()=>{ if(!loadDone) failLoad('quá thời gian chờ'); }, 120000);
 }
