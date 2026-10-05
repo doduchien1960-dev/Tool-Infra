@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xưởng ĐỨC BẢO — Phòng 3D</title>
+<style>
+  :root{
+    --ink:#2b2118; --paper:#faf6ef; --accent:#b4762a; --moss:#5c6e4e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#14100b;color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+  #scene{position:fixed;inset:0}
+  #scene canvas{display:block}
+
+  /* ---------- loading ---------- */
+  #loader{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;
+    background:#14100b url('assets/room_360.webp') center/cover;transition:opacity .8s}
+  #loader.done{opacity:0;pointer-events:none}
+  #loader .box{background:rgba(20,16,11,.72);backdrop-filter:blur(8px);
+    padding:28px 40px;border-radius:14px;text-align:center;color:#f3e9d7;
+    border:1px solid rgba(180,118,42,.35)}
+  #loader h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;
+    font-size:26px;letter-spacing:4px;margin-bottom:6px}
+  #loader p{font-size:13px;opacity:.75;letter-spacing:1px}
+  #bar{width:220px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;
+    margin:14px auto 0;overflow:hidden}
+  #bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+
+  /* ---------- header ---------- */
+  #hud{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;
+    justify-content:space-between;align-items:center;padding:16px 22px;
+    pointer-events:none}
+  #brand{pointer-events:auto;background:rgba(20,16,11,.62);backdrop-filter:blur(8px);
+    color:#f3e9d7;border:1px solid rgba(180,118,42,.35);border-radius:10px;
+    padding:8px 16px;font-family:Georgia,serif;letter-spacing:3px;font-size:15px}
+  #topbtns{pointer-events:auto;display:flex;gap:8px}
+  .tbtn{background:rgba(20,16,11,.62);backdrop-filter:blur(8px);color:#f3e9d7;
+    border:1px solid rgba(180,118,42,.35);border-radius:10px;padding:8px 14px;
+    font-size:13px;cursor:pointer;letter-spacing:.5px}
+  .tbtn:hover{background:rgba(180,118,42,.35)}
+  .tbtn.on{background:var(--accent);border-color:var(--accent);color:#14100b}
+
+  /* ---------- tour nav ---------- */
+  #tour{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:20;
+    display:flex;gap:8px;align-items:center;
+    background:rgba(20,16,11,.62);backdrop-filter:blur(8px);
+    border:1px solid rgba(180,118,42,.35);border-radius:999px;padding:8px 12px}
+  #tour button{border:1px solid transparent;background:transparent;color:#f3e9d7;
+    border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;white-space:nowrap}
+  #tour button:hover{border-color:rgba(180,118,42,.5)}
+  #tour button.on{background:var(--accent);color:#14100b;font-weight:600}
+  #tour .sep{width:1px;height:20px;background:rgba(180,118,42,.35)}
+
+  /* ---------- hotspots ---------- */
+  .hs{position:fixed;z-index:15;width:34px;height:34px;margin:-17px 0 0 -17px;
+    border-radius:50%;border:2px solid #f3e9d7;background:rgba(180,118,42,.85);
+    color:#14100b;font-size:16px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 12px rgba(0,0,0,.5);transition:transform .2s}
+  .hs:hover{transform:scale(1.2)}
+  .hs::after{content:"";position:absolute;inset:-8px;border-radius:50%;
+    border:1px solid rgba(243,233,215,.5);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{transform:scale(.7);opacity:1}70%{transform:scale(1.15);opacity:0}100%{opacity:0}}
+
+  /* ---------- info panel ---------- */
+  #panel{position:fixed;top:0;right:-380px;width:360px;max-width:88vw;height:100%;
+    z-index:30;background:var(--paper);box-shadow:-8px 0 30px rgba(0,0,0,.4);
+    transition:right .35s cubic-bezier(.2,.8,.2,1);padding:26px 24px;overflow-y:auto}
+  #panel.open{right:0}
+  #panel h2{font-family:Georgia,serif;font-weight:400;font-size:22px;margin-bottom:4px}
+  #panel .sub{font-size:12px;letter-spacing:2px;color:var(--accent);margin-bottom:16px}
+  #panel p{font-size:14px;line-height:1.7;margin-bottom:12px}
+  #panel pre{background:#211a12;color:#e8d9bd;font-size:12px;line-height:1.6;
+    padding:14px;border-radius:8px;overflow-x:auto;margin-bottom:12px}
+  #panel ul{margin:0 0 12px 18px;font-size:14px;line-height:1.8}
+  #closePanel{position:absolute;top:14px;right:16px;border:none;background:none;
+    font-size:22px;cursor:pointer;color:var(--ink)}
+
+  /* ---------- asset gallery ---------- */
+  #gallery{position:fixed;inset:0;z-index:40;background:rgba(15,12,8,.92);
+    display:none;flex-direction:column;padding:26px;color:#f3e9d7}
+  #gallery.open{display:flex}
+  #gallery h2{font-family:Georgia,serif;font-weight:400;letter-spacing:3px;
+    font-size:20px;margin-bottom:4px}
+  #gallery .hint{font-size:12px;opacity:.6;margin-bottom:16px}
+  #ggrid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:12px;align-content:start}
+  .gcard{background:rgba(255,255,255,.05);border:1px solid rgba(180,118,42,.3);
+    border-radius:10px;padding:18px 10px;text-align:center;cursor:pointer;font-size:13px}
+  .gcard:hover{background:rgba(180,118,42,.25)}
+  .gcard .ic{font-size:30px;margin-bottom:8px}
+  #gclose{align-self:flex-end;margin-bottom:10px}
+  #viewer{position:fixed;inset:0;z-index:45;background:rgba(10,8,5,.96);display:none}
+  #viewer.open{display:block}
+  #viewer canvas{display:block}
+  #vclose{position:absolute;top:16px;right:20px;z-index:2}
+  #vlabel{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+    color:#f3e9d7;font-family:Georgia,serif;letter-spacing:2px;font-size:16px;z-index:2}
+
+  @media (max-width:640px){
+    #tour{bottom:12px;max-width:94vw;overflow-x:auto}
+    #brand{font-size:12px;letter-spacing:2px}
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div id="loader">
+  <div class="box">
+    <h1>ĐỨC BẢO</h1>
+    <p>XƯỞNG 3D &mdash; ĐANG DỰNG PHÒNG…</p>
+    <div id="bar"><i></i></div>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="brand">ĐỨC BẢO · XƯỞNG 3D</div>
+  <div id="topbtns">
+    <button class="tbtn" id="btnTour">⏸ Tour</button>
+    <button class="tbtn" id="btnAssets">🧩 Chi tiết từng món</button>
+  </div>
+</div>
+
+<div id="tour"></div>
+<div id="panel"><button id="closePanel">×</button><div id="panelBody"></div></div>
+
+<div id="gallery">
+  <button class="tbtn" id="gclose">✕ Đóng</button>
+  <h2>CHI TIẾT TỪNG MÓN</h2>
+  <div class="hint">Bấm vào món đồ để xoay xem 360°</div>
+  <div id="ggrid"></div>
+</div>
+<div id="viewer">
+  <button class="tbtn" id="vclose">✕ Đóng</button>
+  <div id="vlabel"></div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+  "@sparkjsdev/spark": "https://unpkg.com/@sparkjsdev/spark@2.3.1/dist/spark.module.js"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { SplatMesh, SparkRenderer } from '@sparkjsdev/spark';
+
+/* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
+const CFG = {
+  splatUrl: 'assets/room.spz',
+  // 4 góc tour: [pos xyz, target xyz]
+  waypoints: [
+    { name:'Toàn cảnh', pos:[0, 2.2, 5.2],  tgt:[0, 1.2, 0] },
+    { name:'Góc bàn hero', pos:[2.6, 1.7, 2.2], tgt:[1.2, 1.0, -1.6] },
+    { name:'Kệ sách', pos:[-2.8, 1.7, 1.6], tgt:[-2.2, 1.3, -1.8] },
+    { name:'Góc cây xanh', pos:[0.6, 1.6, -3.4], tgt:[-0.6, 1.2, 0.6] },
+  ],
+  // điểm chạm: [pos xyz, tiêu đề, loại nội dung]
+  hotspots: [
+    { pos:[1.2, 1.35, -1.6], icon:'🖥', title:'Màn hình làm việc', kind:'code' },
+    { pos:[-2.2, 1.5, -1.8], icon:'📚', title:'Kệ sách kỹ thuật', kind:'books' },
+    { pos:[0.4, 1.1, -0.6],  icon:'🪧', title:'Biển tên xưởng', kind:'about' },
+  ],
+  assets: [
+    ['B01_desk.glb','🪑','Bàn chữ L'], ['B02_case.glb','🖥','Case PC'],
+    ['B03_monitor.glb','📺','Màn hình'], ['B05_keyboard.glb','⌨','Bàn phím'],
+    ['B06_lamp.glb','💡','Đèn đồng'], ['B07_headphones.glb','🎧','Tai nghe'],
+    ['B10_chair.glb','💺','Ghế'], ['C01_shelf.glb','📚','Kệ sách'],
+    ['G01_pothos.glb','🪴','Trầu bà treo'], ['G03_monstera.glb','🌿','Monstera'],
+  ],
+};
+
+const CONTENT = {
+  code: `<h2>Màn hình làm việc</h2><div class="sub">CIVIL 3D · .NET API</div>
+    <p>Code C# chạy trong Civil 3D — lệnh tự động xử lý bề mặt địa hình:</p>
+    <pre>[CommandMethod("TIN2GRID")]
+public void TinToGrid(){
+  var doc = Application.DocumentManager.MdiActiveDocument;
+  var db = doc.Database;
+  using (var tr = db.TransactionManager.StartTransaction()){
+    // đọc TIN surface, nội suy lưới ô vuông,
+    // tính khối lượng đào đắp theo phương pháp lưới
+    tr.Commit();
+  }
+}</pre>
+    <p>Màn hình phụ: mặt cắt ngang tuyến đường — bình đồ, trắc dọc, khối lượng.</p>`,
+  books: `<h2>Kệ sách kỹ thuật</h2><div class="sub">TIÊU CHUẨN ÁP DỤNG</div>
+    <ul><li>TCVN 7957 — Thoát nước đô thị</li>
+    <li>TCVN 33 — Cấp nước đô thị</li>
+    <li>TCVN 4054 — Đường ô tô</li>
+    <li>QCVN 07-1 — Hạ tầng kỹ thuật đô thị</li></ul>
+    <p>Binder hồ sơ, bản vẽ hoàn công và tài liệu dự án được sắp theo từng công trình.</p>`,
+  about: `<h2>ĐỨC BẢO</h2><div class="sub">XƯỞNG NGHỀ · INFRA</div>
+    <p>Kỹ sư hạ tầng giao thông &amp; san nền. Code C# trên Civil 3D (.NET API)
+    và Revit API, dùng Dynamo tự động hóa thiết kế.</p>
+    <p>Xưởng 3D này là nơi làm việc — ấm cúng, nhiều cây xanh,
+    và đủ đồ công nghệ để "chiến" với mọi dự án hạ tầng.</p>`,
+};
+
+/* ================= SCENE ================= */
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x14100b);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(...CFG.waypoints[0].pos);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(...CFG.waypoints[0].tgt);
+controls.enableDamping = true;
+controls.minDistance = 0.8; controls.maxDistance = 7;
+controls.maxPolarAngle = 1.72;
+
+const spark = new SparkRenderer({ renderer });
+scene.add(spark);
+const room = new SplatMesh({ url: CFG.splatUrl });
+scene.add(room);
+
+const bar = document.querySelector('#bar i');
+let progress = 0;
+const tick = setInterval(()=>{
+  progress = Math.min(progress + Math.random()*14, 92);
+  bar.style.width = progress + '%';
+}, 300);
+
+room.onLoad = ()=>{
+  clearInterval(tick); bar.style.width = '100%';
+  setTimeout(()=>document.getElementById('loader').classList.add('done'), 400);
+  buildHotspots(); buildTour(); startTour();
+};
+room.onError = ()=>{
+  clearInterval(tick);
+  document.querySelector('#loader p').textContent = 'KHÔNG TẢI ĐƯỢC PHÒNG 3D — KIỂM TRA MẠNG';
+};
+
+/* ================= HOTSPOT ================= */
+const hsLayer = document.body;
+let hsList = [];
+function buildHotspots(){
+  CFG.hotspots.forEach(h=>{
+    const el = document.createElement('button');
+    el.className = 'hs'; el.textContent = h.icon; el.title = h.title;
+    el.onclick = ()=>openPanel(h);
+    hsLayer.appendChild(el);
+    hsList.push({ el, pos:new THREE.Vector3(...h.pos) });
+  });
+}
+const panel = document.getElementById('panel');
+const panelBody = document.getElementById('panelBody');
+function openPanel(h){
+  panelBody.innerHTML = CONTENT[h.kind] || '';
+  panel.classList.add('open');
+}
+document.getElementById('closePanel').onclick = ()=>panel.classList.remove('open');
+
+const _v = new THREE.Vector3();
+function updateHotspots(){
+  hsList.forEach(({el, pos})=>{
+    _v.copy(pos).project(camera);
+    const behind = _v.z > 1;
+    const x = (_v.x*0.5+0.5)*innerWidth, y = (-_v.y*0.5+0.5)*innerHeight;
+    el.style.display = behind ? 'none' : 'flex';
+    el.style.left = x+'px'; el.style.top = y+'px';
+  });
+}
+
+/* ================= TOUR ================= */
+const tourEl = document.getElementById('tour');
+let tourIdx = 0, touring = true, tween = null;
+function buildTour(){
+  CFG.waypoints.forEach((w,i)=>{
+    const b = document.createElement('button');
+    b.textContent = w.name;
+    b.onclick = ()=>{ goTo(i); };
+    tourEl.appendChild(b);
+  });
+  const sep = document.createElement('div'); sep.className='sep'; tourEl.appendChild(sep);
+  markTour();
+}
+function markTour(){
+  [...tourEl.querySelectorAll('button')].forEach((b,i)=>b.classList.toggle('on', i===tourIdx));
+}
+function goTo(i){
+  tourIdx = i; markTour();
+  const w = CFG.waypoints[i];
+  tween = {
+    t:0,
+    p0:camera.position.clone(), p1:new THREE.Vector3(...w.pos),
+    t0:controls.target.clone(), t1:new THREE.Vector3(...w.tgt),
+  };
+}
+function startTour(){ setTimeout(()=>{ if(touring) goTo(1); }, 2500); }
+document.getElementById('btnTour').onclick = (e)=>{
+  touring = !touring;
+  e.target.textContent = touring ? '⏸ Tour' : '▶ Tour';
+  e.target.classList.toggle('on', !touring);
+  if(touring) goTo((tourIdx+1)%CFG.waypoints.length);
+};
+controls.addEventListener('start', ()=>{ tween = null; }); // người dùng chạm vào → dừng tween
+
+const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+let tourTimer = 0;
+function updateTour(dt){
+  if(tween){
+    tween.t = Math.min(tween.t + dt/2.2, 1);
+    const e = ease(tween.t);
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if(tween.t >= 1){ tween = null; tourTimer = 0; }
+  } else if(touring){
+    tourTimer += dt;
+    if(tourTimer > 7){ tourTimer = 0; goTo((tourIdx+1)%CFG.waypoints.length); }
+  }
+}
+
+/* ================= GALLERY CHI TIẾT ================= */
+const ggrid = document.getElementById('ggrid');
+CFG.assets.forEach(([file, ic, name])=>{
+  const c = document.createElement('div');
+  c.className = 'gcard';
+  c.innerHTML = `<div class="ic">${ic}</div>${name}`;
+  c.onclick = ()=>openViewer(file, name);
+  ggrid.appendChild(c);
+});
+document.getElementById('btnAssets').onclick = ()=>document.getElementById('gallery').classList.add('open');
+document.getElementById('gclose').onclick = ()=>document.getElementById('gallery').classList.remove('open');
+
+let vRenderer, vScene, vCamera, vControls, vModel;
+function openViewer(file, name){
+  document.getElementById('viewer').classList.add('open');
+  document.getElementById('vlabel').textContent = name;
+  if(!vRenderer){
+    vRenderer = new THREE.WebGLRenderer({ antialias:true });
+    vRenderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    vRenderer.setSize(innerWidth, innerHeight);
+    document.getElementById('viewer').appendChild(vRenderer.domElement);
+    vScene = new THREE.Scene(); vScene.background = new THREE.Color(0x14100b);
+    vCamera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+    vCamera.position.set(1.6, 1.1, 2.2);
+    vControls = new OrbitControls(vCamera, vRenderer.domElement);
+    vControls.enableDamping = true;
+    vScene.add(new THREE.HemisphereLight(0xfff2dd, 0x2a2018, 1.1));
+    const key = new THREE.DirectionalLight(0xffe6b8, 1.6);
+    key.position.set(3, 5, 2); vScene.add(key);
+  }
+  if(vModel){ vScene.remove(vModel); vModel = null; }
+  new GLTFLoader().load('assets/models/'+file, gltf=>{
+    vModel = gltf.scene;
+    const box = new THREE.Box3().setFromObject(vModel);
+    const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+    const r = Math.max(s.x, s.y, s.z);
+    vModel.position.sub(c);
+    vControls.target.set(0, 0, 0);
+    vCamera.position.set(r*1.1, r*0.75, r*1.5);
+    vScene.add(vModel);
+  });
+  (function loop(){
+    if(!document.getElementById('viewer').classList.contains('open')) return;
+    requestAnimationFrame(loop);
+    vControls.update(); vRenderer.render(vScene, vCamera);
+  })();
+}
+document.getElementById('vclose').onclick = ()=>document.getElementById('viewer').classList.remove('open');
+
+/* ================= LOOP ================= */
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  if(vRenderer){ vCamera.aspect = innerWidth/innerHeight; vCamera.updateProjectionMatrix(); vRenderer.setSize(innerWidth, innerHeight); }
+});
+const clock = new THREE.Clock();
+(function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  updateTour(dt);
+  controls.update();
+  updateHotspots();
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
