@@ -226,25 +226,31 @@ controls.maxPolarAngle = 1.72;
 
 const spark = new SparkRenderer({ renderer });
 scene.add(spark);
-const room = new SplatMesh({ url: CFG.splatUrl });
-scene.add(room);
 
 const bar = document.querySelector('#bar i');
-let progress = 0;
-const tick = setInterval(()=>{
-  progress = Math.min(progress + Math.random()*14, 92);
-  bar.style.width = progress + '%';
-}, 300);
-
-room.onLoad = ()=>{
-  clearInterval(tick); bar.style.width = '100%';
+const loadMsg = document.querySelector('#loader p');
+let loadDone = false;
+function finishLoad(){
+  if(loadDone) return; loadDone = true;
+  bar.style.width = '100%';
   setTimeout(()=>document.getElementById('loader').classList.add('done'), 400);
   buildHotspots(); buildTour(); startTour();
-};
-room.onError = ()=>{
-  clearInterval(tick);
-  document.querySelector('#loader p').textContent = 'KHÔNG TẢI ĐƯỢC PHÒNG 3D — KIỂM TRA MẠNG';
-};
+}
+const room = new SplatMesh({
+  url: CFG.splatUrl,
+  onProgress: (e)=>{
+    if(e.total > 0) bar.style.width = Math.round(e.loaded/e.total*100) + '%';
+  },
+  onLoad: ()=>finishLoad(),
+});
+scene.add(room);
+// lưới an toàn: 90s chưa xong thì báo lỗi
+setTimeout(()=>{
+  if(!loadDone){
+    loadMsg.textContent = 'TẢI PHÒNG LÂU QUÁ — THỬ TẢI LẠI TRANG (F5)';
+    loadMsg.style.color = '#e08a7e';
+  }
+}, 90000);
 
 /* ================= HOTSPOT ================= */
 const hsLayer = document.body;
