@@ -156,19 +156,19 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
   splatUrl: 'assets/room.spz',
-  // 4 điểm đứng trong phòng 5x4m (tầm mắt 1.6m, góc nhìn thứ nhất)
+  // 4 điểm đứng trong phòng tiny (~6m, tâm tại gốc, tầm mắt 1.6m)
   waypoints: [
-    { name:'Toàn cảnh', pos:[0, 1.6, 1.0],  tgt:[0, 1.0, -1.2] },
-    { name:'Góc làm việc', pos:[0.9, 1.6, -0.3], tgt:[0.9, 0.8, -1.35] },
-    { name:'Kệ sách', pos:[-1.3, 1.6, 0.6], tgt:[-2.32, 1.2, 0.6] },
-    { name:'Giường', pos:[-0.5, 1.6, 0.3], tgt:[-1.75, 0.8, -0.9] },
+    { name:'Toàn cảnh', pos:[0, 1.6, 2.0],  tgt:[0, 1.0, -1.0] },
+    { name:'Góc làm việc', pos:[1.5, 1.6, 1.0], tgt:[-1.5, 0.8, -1.5] },
+    { name:'Giường', pos:[-1.5, 1.6, 1.5], tgt:[-2.0, 0.6, -2.0] },
+    { name:'Cửa sổ', pos:[0, 1.6, -2.0], tgt:[0, 1.2, -2.8] },
   ],
-  // điểm chạm: [pos xyz, tiêu đề, loại nội dung]
+  // điểm chạm: vị trí tương đối trong phòng tiny
   hotspots: [
-    { pos:[0.9, 1.2, -1.35], icon:'🖥', title:'Góc làm việc', kind:'code' },
-    { pos:[-2.32, 1.5, 0.6], icon:'📚', title:'Kệ sách kỹ thuật', kind:'books' },
-    { pos:[-1.75, 1.0, -0.9], icon:'🛏', title:'Giới thiệu', kind:'about' },
-    { pos:[1.9, 1.0, 1.2], icon:'🌿', title:'Góc cây xanh', kind:'plants' },
+    { pos:[-1.5, 1.0, -1.5], icon:'💻', title:'Góc làm việc', kind:'code' },
+    { pos:[-2.0, 0.8, -2.0], icon:'🛏', title:'Giới thiệu', kind:'about' },
+    { pos:[2.0, 1.2, -1.0], icon:'🚪', title:'Tủ đồ', kind:'books' },
+    { pos:[1.5, 0.8, 1.5], icon:'🌿', title:'Góc cây xanh', kind:'plants' },
   ],
   assets: [
     ['B01_desk.glb','🪑','Bàn chữ L'], ['B02_case.glb','🖥','Case PC'],
@@ -272,78 +272,14 @@ async function init(){
 
   buildRoom();
   setupLights();
-  loadFurniture();
+  loadRoom();
 
   renderer.setAnimationLoop(animate);
 }
 
-// ---- Vỏ phòng 5x4x3m ----
+// ---- Vỏ phòng: dùng tiny_room.glb, không cần dựng thủ công ----
 function buildRoom(){
-  const matFloor = new THREE.MeshStandardMaterial({ color:0x8b5e34, roughness:0.65 });
-  const matWall = new THREE.MeshStandardMaterial({ color:0xe8e0d2, roughness:0.95 });
-  const matCeil = new THREE.MeshStandardMaterial({ color:0xf5f2ea, roughness:0.95 });
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(5, 4), matFloor);
-  floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
-  const mkWall = (w, x, z, ry)=>{
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, 3), matWall);
-    m.position.set(x, 1.5, z); m.rotation.y = ry; m.receiveShadow = true; scene.add(m);
-  };
-  mkWall(5, 0, -2, 0); mkWall(5, 0, 2, Math.PI);
-  mkWall(4, -2.5, 0, Math.PI/2); mkWall(4, 2.5, 0, -Math.PI/2);
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(5, 4), matCeil);
-  ceil.rotation.x = Math.PI/2; ceil.position.y = 3; scene.add(ceil);
-
-  // cửa sổ trên tường đông (X=2.5): khung gỗ + kính + trời xanh
-  const winG = new THREE.Group();
-  const frameMat = new THREE.MeshStandardMaterial({ color:0x6b4a2a, roughness:0.6 });
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.2, 1.4), frameMat);
-  frame.castShadow = true; winG.add(frame);
-  const skyMat = new THREE.MeshBasicMaterial({ color:0x87ceeb });
-  const sky = new THREE.Mesh(new THREE.PlaneGeometry(1.24, 1.04), skyMat);
-  sky.rotation.y = -Math.PI/2; sky.position.x = -0.045; winG.add(sky);
-  // thanh chia ô
-  const barV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.04, 0.04), frameMat);
-  barV.position.x = -0.05; winG.add(barV);
-  const barH = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 1.24), frameMat);
-  barH.position.x = -0.05; winG.add(barH);
-  winG.position.set(2.46, 1.6, 0.5);
-  scene.add(winG);
-
-  // dây treo cây trầu bà từ trần xuống
-  const ropeMat = new THREE.MeshStandardMaterial({ color:0x8a6d3b, roughness:0.9 });
-  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.0, 8), ropeMat);
-  rope.position.set(-1.8, 2.5, 1.5); scene.add(rope);
-
-  // chân tường (baseboard)
-  const bbMat = new THREE.MeshStandardMaterial({ color:0x5a3d22, roughness:0.7 });
-  const mkBB = (w, x, z, ry)=>{
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, 0.03), bbMat);
-    m.position.set(x, 0.05, z); m.rotation.y = ry; scene.add(m);
-  };
-  mkBB(5, 0, -1.985, 0); mkBB(5, 0, 1.985, 0);
-  mkBB(4, -2.485, 0, Math.PI/2); mkBB(4, 2.485, 0, Math.PI/2);
-
-  // thảm dưới khu bàn
-  const rugMat = new THREE.MeshStandardMaterial({ color:0x7a2e2e, roughness:0.95 });
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.0), rugMat);
-  rug.rotation.x = -Math.PI/2; rug.position.set(0.8, 0.005, -0.6);
-  rug.receiveShadow = true; scene.add(rug);
-
-  // rèm cửa 2 bên cửa sổ
-  const curMat = new THREE.MeshStandardMaterial({ color:0x4a6a8a, roughness:0.9 });
-  [-0.85, 0.85].forEach(dz=>{
-    const cur = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.5, 0.3), curMat);
-    cur.position.set(2.4, 1.55, 0.5 + dz); cur.castShadow = true; scene.add(cur);
-  });
-
-  // đèn trần
-  const lampShade = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.25, 0.35, 0.2, 16),
-    new THREE.MeshStandardMaterial({ color:0xf5e6c8, roughness:0.5 })
-  );
-  lampShade.position.set(0, 2.85, 0); scene.add(lampShade);
-  const bulb = new THREE.PointLight(0xffe0b0, 8, 7, 2);
-  bulb.position.set(0, 2.7, 0); scene.add(bulb);
+  // phòng được tải từ tiny_room.glb trong loadRoom()
 }
 
 // ---- Ánh sáng ----
@@ -363,85 +299,38 @@ function setupLights(){
 
 // ---- Nội thất Poly Haven — theo bản vẽ bố trí đã duyệt ----
 // Tọa độ tâm vật (mét). Phòng 5×4×3m, gốc giữa phòng.
-async function loadFurniture(){
+// ---- Phòng tiny_isometric_room.glb ----
+async function loadRoom(){
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
   const ktx2 = new KTX2Loader();
   ktx2.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
   ktx2.detectSupport(renderer);
-  try { await ktx2.init(); } catch(e){ failLoad('không khởi tạo được KTX2: '+(e.message||e)); return; }
+  try { await ktx2.init(); } catch(e){ failLoad('không khởi tạo KTX2: '+(e.message||e)); return; }
   loader.setKTX2Loader(ktx2);
-
-  async function loadOne(file){
-    let lastErr = '';
-    for(let attempt = 0; attempt < 3; attempt++){
-      try {
-        const gltf = await loader.loadAsync('assets/models/'+file);
-        const o = gltf.scene;
-        o.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
-        return o;
-      } catch(e){ lastErr = e.message || String(e); await new Promise(r=>setTimeout(r, 1000)); }
-    }
-    failLoad('không tải được '+file+': '+lastErr);
-    return null;
-  }
-  // đặt vật: đáy khít yBase, tâm tại (x,z), xoay ry
-  function place(o, x, yBase, z, ry){
-    o.rotation.y = ry || 0;
-    o.position.set(x, 0, z);
-    o.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(o);
-    o.position.y = yBase - box.min.y;
-    scene.add(o);
-    return box.max.y + (yBase - box.min.y);
-  }
-
-  const ITEMS = [
-    // [file, x, yBase, z, ry] — yBase: mặt đặt vật (0=sàn, 0.79=mặt bàn)
-    ['ph_old_bed_frame.glb',      -1.75, 0,    -0.90, 0],          // giường
-    ['ph_ClassicNightstand_01.glb', -0.95, 0,  -1.65, 0],          // tủ đầu giường
-    ['ph_metal_office_desk.glb',   0.90, 0,    -1.35, 0],          // bàn (mặt 0.79m)
-    ['ph_desk_lamp_arm_01.glb',    0.15, 0.79, -1.50, 0],          // đèn bàn trên mặt bàn
-    ['ph_WoodenChair_01.glb',      0.90, 0,    -0.35, Math.PI],    // ghế trước bàn
-    ['ph_drawer_cabinet.glb',      2.00, 0,    -1.50, 0],          // tủ ngăn kéo
-    ['ph_Shelf_01.glb',           -2.32, 0,     0.60, Math.PI/2],  // kệ sách tường tây
-    ['G03_monstera.glb',           1.90, 0,     1.20, 0],          // monstera góc đông-nam
-  ];
-  let done = 0;
-  const total = ITEMS.length + 2; // + đèn trần + cây treo
-  const tick = ()=>{ done++; bar.style.width = Math.round(done/total*100) + '%'; };
-
-  for(const [file, x, yB, z, ry] of ITEMS){
-    const o = await loadOne(file);
-    if(!o) return;
-    // riêng ghế Poly Haven không cần scale (kích thước thật)
-    place(o, x, yB, z, ry); tick();
-  }
-  // monstera cần scale nhỏ lại (file cũ)
-  // (đã xử lý trong ITEMS bằng placeOn tự động)
-
-  // đèn trần treo giữa phòng
-  const ceilLamp = await loadOne('ph_modern_ceiling_lamp_01.glb');
-  if(!ceilLamp) return;
-  ceilLamp.position.set(0, 0, 0);
-  ceilLamp.updateMatrixWorld(true);
-  const cb = new THREE.Box3().setFromObject(ceilLamp);
-  ceilLamp.position.set(0, 3.0 - cb.max.y - 0.05, 0); // treo sát trần
-  scene.add(ceilLamp); tick();
-
-  // cây treo — móc vào dây
-  const pothos = await loadOne('G01_pothos.glb');
-  if(!pothos) return;
-  pothos.scale.setScalar(0.40);
-  pothos.rotation.y = 0; pothos.position.set(-1.8, 0, 1.5);
-  pothos.updateMatrixWorld(true);
-  const pb = new THREE.Box3().setFromObject(pothos);
-  pothos.position.y = 2.0 - pb.max.y;
-  scene.add(pothos); tick();
-
-  finishLoad();
-  setTimeout(()=>{ if(!loadDone) failLoad('quá thời gian chờ'); }, 120000);
+  bar.style.width = '30%';
+  try {
+    const gltf = await loader.loadAsync('assets/models/tiny_room.glb',
+      (e)=>{ if(e.total>0) bar.style.width = Math.round(30 + e.loaded/e.total*60) + '%'; });
+    const room = gltf.scene;
+    const SCALE = 0.009; // 660 đơn vị → ~6m
+    room.scale.setScalar(SCALE);
+    room.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(room);
+    const c = box.getCenter(new THREE.Vector3());
+    room.position.x -= c.x; room.position.z -= c.z;
+    room.updateMatrixWorld(true);
+    const box2 = new THREE.Box3().setFromObject(room);
+    room.position.y -= box2.min.y; // sàn về Y=0
+    room.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } });
+    scene.add(room);
+    window.__roomBox = new THREE.Box3().setFromObject(room);
+    bar.style.width = '100%';
+    finishLoad();
+  } catch(e){ failLoad('không tải được phòng: '+(e.message||e)); }
+  setTimeout(()=>{ if(!loadDone) failLoad('quá thời gian chờ'); }, 180000);
 }
+
 init();
 
 /* ================= HOTSPOT ================= */
