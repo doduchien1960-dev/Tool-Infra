@@ -151,6 +151,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 /* ================= CẤU HÌNH (chỉnh số ở đây khi cần) ================= */
 const CFG = {
@@ -319,6 +320,7 @@ const FURNITURE = [
 ];
 async function loadFurniture(){
   const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
   // hỗ trợ texture nén BasisU/KTX2 trong GLB
   const ktx2 = new KTX2Loader();
   ktx2.setTranscoderPath('https://unpkg.com/three@0.186.1/examples/jsm/libs/basis/');
