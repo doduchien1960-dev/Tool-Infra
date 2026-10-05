@@ -255,10 +255,13 @@ async function init(){
   controls.maxPolarAngle = 1.72;
 
   // tải splat phòng bằng SPZLoader native của three.js
+  // căn tâm phòng về gốc tọa độ (bbox thực: center -5.81,2.97,0.93)
   new SPZLoader().load(
     CFG.splatUrl,
     (geometry)=>{
-      scene.add(new GaussianSplat(geometry));
+      const splat = new GaussianSplat(geometry);
+      splat.position.set(5.81, -1.77, -0.93);
+      scene.add(splat);
       finishLoad();
     },
     (e)=>{ if(e.total > 0) bar.style.width = Math.round(e.loaded/e.total*100) + '%'; },
